@@ -15,7 +15,7 @@ The application operates **ONLINE** powered by Firebase Cloud Realtime Database,
 
 ### 🔑 User Authentication System
 - **Sign In & Account Registration**: Create user accounts with Name, Email, Phone, and Password.
-- **Super Admin Credentials**: Special Super Admin access (`VIKIR0200@GMAIL.COM` / `VIKI1101`) to manage bank branches.
+
 - **Cloud User Sync**: User registrations sync to `users/` in Firebase Cloud.
 
 ### 📊 Online Dashboard & Metrics
@@ -36,10 +36,6 @@ The application operates **ONLINE** powered by Firebase Cloud Realtime Database,
 
 ---
 
-## 🛠️ Super Admin Credentials
-
-- **Super Admin Email**: `VIKIR0200@GMAIL.COM`
-- **Super Admin Password**: `VIKI1101`
 
 ---
 
