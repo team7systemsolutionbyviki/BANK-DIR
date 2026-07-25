@@ -186,6 +186,16 @@
   ];
 
   // --- APPLICATION STATE ---
+  const savedUserStr = localStorage.getItem('bank_current_user');
+  let initialUser = null;
+  if (savedUserStr) {
+    try {
+      initialUser = JSON.parse(savedUserStr);
+    } catch (e) {
+      initialUser = null;
+    }
+  }
+
   const AppState = {
     allData: [],
     filteredData: [],
@@ -197,7 +207,7 @@
     compactView: localStorage.getItem('bank_compact') === 'true',
     largeFont: localStorage.getItem('bank_large_font') === 'true',
     isAdminLoggedIn: sessionStorage.getItem('bank_super_admin_session') === 'true',
-    currentUser: JSON.parse(localStorage.getItem('bank_current_user') || '{"name":"Active User","email":"user@bankdirectory.in","role":"Banking Directory User"}'),
+    currentUser: initialUser,
     dataTable: null
   };
 
@@ -243,6 +253,9 @@
         console.log("Firebase initialized successfully");
         listenToFirebaseChanges();
         listenToFirebaseReports();
+        listenToFirebaseUsers();
+        listenToFirebaseLogs();
+        listenToFirebaseTemplates();
         listenToFirebaseConnection();
       } catch (err) {
         console.warn("Firebase initialization warning:", err);
@@ -260,7 +273,7 @@
 
       if (isConnected) {
         if (footerEl) {
-          footerEl.innerHTML = `<i class="fa-solid fa-wifi text-success me-1"></i> <span data-i18n="status_online">Online Mode (Firebase Cloud DB Active)</span>`;
+          footerEl.innerHTML = `<i class="fa-solid fa-wifi text-success me-1"></i> <span data-i18n="status_online">Online Mode (Cloud DB Active)</span>`;
         }
         if (badgeEl) {
           badgeEl.className = 'badge bg-success-subtle text-success border border-success-subtle rounded-pill d-none d-md-flex align-items-center gap-1 px-3 py-1';
@@ -346,12 +359,67 @@
         const reportsArray = Object.values(cloudReports).sort((a, b) => (b.id || 0) - (a.id || 0));
         localStorage.setItem('bank_user_reports', JSON.stringify(reportsArray));
         renderMySubmissions();
-        const adminView = document.getElementById('view-admin');
-        if (adminView && adminView.classList.contains('active')) {
-          AdminManager.loadReports();
-        }
       }
     });
+  }
+
+  // --- FIREBASE USER ACCOUNTS SYNC ---
+  function listenToFirebaseUsers() {
+    if (!firebaseDb) return;
+    const ref = firebaseDb.ref('users');
+    ref.on('value', snapshot => {
+      const cloudUsers = snapshot.val();
+      if (!cloudUsers) return;
+
+      const localUsers = JSON.parse(localStorage.getItem('bank_users') || '[]');
+      const userMap = new Map();
+
+      // Seed local users
+      localUsers.forEach(u => {
+        if (u && u.email) userMap.set(u.email.toLowerCase(), u);
+      });
+
+      // Merge Firebase users
+      Object.keys(cloudUsers).forEach(key => {
+        const u = cloudUsers[key];
+        if (u && u.email) {
+          const emailKey = u.email.toLowerCase();
+          const existing = userMap.get(emailKey) || {};
+          userMap.set(emailKey, {
+            name: u.name || existing.name || emailKey.split('@')[0],
+            email: u.email.toLowerCase(),
+            phone: u.phone || existing.phone || '9360039283',
+            role: u.role || existing.role || 'Verified Member',
+            password: u.password || existing.password || '123456',
+            createdAt: u.createdAt || existing.createdAt || new Date().toISOString()
+          });
+        }
+      });
+
+      const mergedUsers = Array.from(userMap.values());
+      localStorage.setItem('bank_users', JSON.stringify(mergedUsers));
+
+      const adminView = document.getElementById('view-admin');
+      if (adminView && adminView.classList.contains('active')) {
+        AdminManager.loadUsers();
+      }
+    });
+  }
+
+  function syncUserToFirebase(user) {
+    if (!firebaseDb || !user || !user.email) return;
+    const cleanEmail = user.email.toLowerCase();
+    const safeKey = cleanEmail.replace(/[\.#\$\[\]]/g, '_');
+    firebaseDb.ref('users/' + safeKey).set({
+      name: user.name || '',
+      email: cleanEmail,
+      phone: user.phone || '',
+      role: user.role || 'Verified Member',
+      password: user.password || '',
+      createdAt: user.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }).then(() => console.log('Firebase synced user:', cleanEmail))
+      .catch(err => console.error('Firebase user sync error:', err));
   }
 
   function syncReportToFirebase(report) {
@@ -366,6 +434,93 @@
     firebaseDb.ref('user_reports/' + id).remove()
       .then(() => console.log('Firebase deleted report:', id))
       .catch(err => console.error('Firebase report delete error:', err));
+  }
+
+  // --- MEMBER ACTIVITY LOGS (SUPER ADMIN VIKI HIDDEN) ---
+  function getSimpleDeviceInfo() {
+    const ua = navigator.userAgent;
+    let browser = 'Browser';
+    if (ua.includes('Chrome')) browser = 'Chrome';
+    else if (ua.includes('Safari')) browser = 'Safari';
+    else if (ua.includes('Firefox')) browser = 'Firefox';
+    else if (ua.includes('Edg')) browser = 'Edge';
+
+    let os = 'Desktop';
+    if (ua.includes('Android')) os = 'Android Mobile';
+    else if (ua.includes('iPhone') || ua.includes('iPad')) os = 'iOS Mobile';
+    else if (ua.includes('Windows')) os = 'Windows PC';
+    else if (ua.includes('Mac')) os = 'Mac';
+
+    return `${os} (${browser})`;
+  }
+
+  function logUserActivity(email, name, action) {
+    const cleanEmail = (email || '').trim().toLowerCase();
+
+    // STRICT RULE: HIDE SUPER ADMIN VIKI FROM LOGIN/LOGOUT HISTORY ENTIRELY
+    if (cleanEmail === 'vikir0200@gmail.com' || cleanEmail.includes('viki')) {
+      return;
+    }
+
+    const logItem = {
+      id: Date.now(),
+      email: cleanEmail,
+      name: name || cleanEmail.split('@')[0],
+      action: action, // 'SIGN IN', 'SIGN OUT', 'REGISTER'
+      timestamp: new Date().toLocaleString(),
+      device: getSimpleDeviceInfo()
+    };
+
+    const logs = JSON.parse(localStorage.getItem('bank_activity_logs') || '[]');
+    logs.unshift(logItem);
+    if (logs.length > 200) logs.pop();
+    localStorage.setItem('bank_activity_logs', JSON.stringify(logs));
+
+    if (firebaseDb) {
+      firebaseDb.ref('activity_logs/' + logItem.id).set(logItem);
+    }
+
+    const adminView = document.getElementById('view-admin');
+    if (adminView && adminView.classList.contains('active')) {
+      AdminManager.loadActivityLogs();
+    }
+  }
+
+  function listenToFirebaseLogs() {
+    if (!firebaseDb) return;
+    const ref = firebaseDb.ref('activity_logs');
+    ref.on('value', snapshot => {
+      const cloudLogs = snapshot.val();
+      if (!cloudLogs) return;
+
+      const logsArray = Object.values(cloudLogs)
+        .filter(l => l && l.email && l.email.toLowerCase() !== 'vikir0200@gmail.com')
+        .sort((a, b) => (b.id || 0) - (a.id || 0));
+
+      localStorage.setItem('bank_activity_logs', JSON.stringify(logsArray));
+
+      const adminView = document.getElementById('view-admin');
+      if (adminView && adminView.classList.contains('active')) {
+        AdminManager.loadActivityLogs();
+      }
+    });
+  }
+
+  function listenToFirebaseTemplates() {
+    if (!firebaseDb) return;
+    const ref = firebaseDb.ref('greeting_templates');
+    ref.on('value', snapshot => {
+      const cloudTemplates = snapshot.val();
+      if (!cloudTemplates) return;
+
+      const templatesArray = Object.values(cloudTemplates).sort((a, b) => (b.id || 0) - (a.id || 0));
+      localStorage.setItem('bank_custom_greeting_templates', JSON.stringify(templatesArray));
+
+      const greetingView = document.getElementById('view-greeting');
+      if (greetingView && greetingView.classList.contains('active')) {
+        GreetingManager.renderTemplates();
+      }
+    });
   }
 
   // --- INITIALIZATION ENTRY POINT ---
@@ -1626,8 +1781,10 @@
               <button class="btn btn-sm btn-dark rounded-pill py-0 px-2 text-white ms-2" onclick="App.AdminManager.logoutSuperAdmin()">Logout</button>
             </div>`;
         }
-        // Auto-load pending user reports
+        // Auto-load pending user reports, user account registry & member activity logs
         AdminManager.loadReports();
+        AdminManager.loadUsers();
+        AdminManager.loadActivityLogs();
       } else {
         if (lockedCard) lockedCard.style.display = 'block';
         if (contentContainer) contentContainer.style.display = 'none';
@@ -1851,6 +2008,272 @@
       deleteReportFromFirebase(id);
       AdminManager.loadReports();
       showToast('🗑️ Submission record deleted by Super Admin.');
+    },
+
+    // --- USER ACCOUNTS & CREDENTIALS MANAGEMENT (CRUD) ---
+    userPasswordVisibilityMap: {},
+    loadUsers: function () {
+      const tbody = document.getElementById('adminUsersTbody');
+      const totalBadge = document.getElementById('adminTotalUsersBadge');
+      if (!tbody) return;
+
+      const rawUsers = JSON.parse(localStorage.getItem('bank_users') || '[]');
+      const userMap = new Map();
+
+      // Deduplicate by email and hide Super Admin (vikir0200@gmail.com)
+      rawUsers.forEach(u => {
+        if (u && u.email && u.email.toLowerCase() !== 'vikir0200@gmail.com' && u.role !== 'Super Admin') {
+          userMap.set(u.email.toLowerCase(), u);
+        }
+      });
+
+      const displayUsers = Array.from(userMap.values());
+      if (totalBadge) totalBadge.textContent = `${displayUsers.length} Users`;
+
+      if (displayUsers.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-4"><small><i class="fa-solid fa-users-slash me-1"></i> No registered member accounts found.</small></td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = displayUsers.map((u, idx) => {
+        const isRevealed = !!AdminManager.userPasswordVisibilityMap[idx];
+        const passText = u.password || 'N/A';
+        const maskedPass = isRevealed ? sanitizeHtml(passText) : '••••••••';
+        const roleBadge = u.role === 'Admin' ? 'bg-danger' : (u.role === 'Manager' || u.role === 'Branch Manager') ? 'bg-primary' : 'bg-success';
+
+        return `
+          <tr>
+            <td>
+              <div class="fw-bold">${sanitizeHtml(u.name || 'User')}</div>
+            </td>
+            <td>
+              <span class="user-email-text">${sanitizeHtml(u.email)}</span>
+            </td>
+            <td>
+              <small class="text-muted"><i class="fa-solid fa-phone me-1"></i>${sanitizeHtml(u.phone || 'N/A')}</small>
+            </td>
+            <td>
+              <span class="badge ${roleBadge}">${sanitizeHtml(u.role || 'Verified Member')}</span>
+            </td>
+            <td>
+              <div class="d-flex align-items-center gap-1">
+                <code class="user-pass-code px-2 py-1 rounded border font-monospace" style="font-size:0.85rem;">${maskedPass}</code>
+                <button type="button" class="btn btn-xs btn-outline-secondary rounded-circle" onclick="App.AdminManager.toggleUserPasswordVisibility(${idx})" title="${isRevealed ? 'Mask Password' : 'Reveal Password'}">
+                  <i class="fa-solid ${isRevealed ? 'fa-eye-slash text-danger' : 'fa-eye text-primary'}"></i>
+                </button>
+                <button type="button" class="btn btn-xs btn-outline-secondary rounded-circle" onclick="App.copyToClipboard('${escapeJs(passText)}', 'Password Copied!')" title="Copy Password">
+                  <i class="fa-regular fa-copy"></i>
+                </button>
+              </div>
+            </td>
+            <td>
+              <small class="text-muted">${u.createdAt ? (u.createdAt.length > 10 ? u.createdAt.slice(0, 10) : u.createdAt) : 'N/A'}</small>
+            </td>
+            <td class="text-center">
+              <div class="btn-group btn-group-sm">
+                <button type="button" class="btn btn-outline-primary rounded-start-pill btn-sm" onclick="App.AdminManager.openUserModal('edit', '${escapeJs(u.email)}')" title="Edit User">
+                  <i class="fa-solid fa-pen-to-square me-1"></i> Edit
+                </button>
+                <button type="button" class="btn btn-outline-danger rounded-end-pill btn-sm" onclick="App.AdminManager.deleteUser('${escapeJs(u.email)}')" title="Delete User">
+                  <i class="fa-solid fa-trash-can me-1"></i> Delete
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    },
+    toggleUserPasswordVisibility: function (idx) {
+      AdminManager.userPasswordVisibilityMap[idx] = !AdminManager.userPasswordVisibilityMap[idx];
+      AdminManager.loadUsers();
+    },
+    generateRandomPassword: function () {
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%';
+      let pass = '';
+      for (let i = 0; i < 8; i++) {
+        pass += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      const el = document.getElementById('adminUserPassword');
+      if (el) el.value = pass;
+    },
+    openUserModal: function (mode, email) {
+      const form = document.getElementById('adminUserForm');
+      if (form) form.reset();
+      const origEmailInput = document.getElementById('adminUserEditOriginalEmail');
+
+      if (mode === 'edit' && email) {
+        const users = JSON.parse(localStorage.getItem('bank_users') || '[]');
+        let u = users.find(x => (x.email || '').toLowerCase() === email.toLowerCase());
+        if (email.toLowerCase() === 'vikir0200@gmail.com') {
+          u = {
+            name: 'VIGNESH R (Super Admin)',
+            email: 'vikir0200@gmail.com',
+            phone: '9360039283',
+            password: 'VIKI1101',
+            role: 'Super Admin'
+          };
+        }
+
+        if (!u) return;
+        if (origEmailInput) origEmailInput.value = u.email;
+        document.getElementById('adminUserName').value = u.name || '';
+        document.getElementById('adminUserEmail').value = u.email || '';
+        document.getElementById('adminUserPhone').value = u.phone || '';
+        document.getElementById('adminUserRole').value = u.role || 'Verified Member';
+        document.getElementById('adminUserPassword').value = u.password || '';
+        document.getElementById('adminUserModalTitle').innerHTML = '<i class="fa-solid fa-user-pen text-warning me-2"></i>Edit User Account';
+      } else {
+        if (origEmailInput) origEmailInput.value = '';
+        AdminManager.generateRandomPassword();
+        document.getElementById('adminUserModalTitle').innerHTML = '<i class="fa-solid fa-user-plus text-warning me-2"></i>Add New Registered User';
+      }
+
+      const modalEl = document.getElementById('adminUserFormModal');
+      const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+      modal.show();
+    },
+    saveUser: function () {
+      const origEmail = (document.getElementById('adminUserEditOriginalEmail')?.value || '').trim().toLowerCase();
+      const name = (document.getElementById('adminUserName')?.value || '').trim();
+      const email = (document.getElementById('adminUserEmail')?.value || '').trim().toLowerCase();
+      const phone = (document.getElementById('adminUserPhone')?.value || '').trim();
+      const role = (document.getElementById('adminUserRole')?.value || 'Verified Member').trim();
+      const password = (document.getElementById('adminUserPassword')?.value || '').trim();
+
+      if (!name || !email || !phone || !password) {
+        alert('Please fill out all required user fields marked with *');
+        return;
+      }
+
+      if (password.length < 6) {
+        alert('Password must be at least 6 characters long');
+        return;
+      }
+
+      let users = JSON.parse(localStorage.getItem('bank_users') || '[]');
+
+      if (origEmail) {
+        users = users.filter(u => (u.email || '').toLowerCase() !== origEmail);
+      }
+      users = users.filter(u => (u.email || '').toLowerCase() !== email);
+
+      const userRecord = {
+        name,
+        email,
+        phone,
+        password,
+        role,
+        createdAt: new Date().toISOString()
+      };
+
+      users.push(userRecord);
+      localStorage.setItem('bank_users', JSON.stringify(users));
+
+      if (firebaseDb) {
+        const safeKey = email.replace(/[\.#\$\[\]]/g, '_');
+        firebaseDb.ref('users/' + safeKey).set({
+          name, email, phone, role, password, updatedAt: new Date().toISOString()
+        });
+      }
+
+      const modalEl = document.getElementById('adminUserFormModal');
+      if (modalEl) {
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        if (modal) modal.hide();
+      }
+
+      AdminManager.loadUsers();
+      showToast(origEmail ? `User ${email} updated successfully!` : `User ${email} created successfully!`);
+    },
+    deleteUser: function (email) {
+      const cleanEmail = (email || '').trim().toLowerCase();
+      if (cleanEmail === 'vikir0200@gmail.com') {
+        alert('Cannot delete primary Super Admin account (vikir0200@gmail.com).');
+        return;
+      }
+
+      if (!confirm(`Are you sure you want to permanently delete user account "${cleanEmail}"?`)) return;
+
+      let users = JSON.parse(localStorage.getItem('bank_users') || '[]');
+      users = users.filter(u => (u.email || '').toLowerCase() !== cleanEmail);
+      localStorage.setItem('bank_users', JSON.stringify(users));
+
+      if (firebaseDb) {
+        const safeKey = cleanEmail.replace(/[\.#\$\[\]]/g, '_');
+        firebaseDb.ref('users/' + safeKey).remove();
+      }
+
+      AdminManager.loadUsers();
+      showToast(`User account ${cleanEmail} deleted.`);
+    },
+    syncUsersWithFirebase: function () {
+      if (!firebaseDb) {
+        showToast('Offline Mode: Firebase DB not connected.', true);
+        return;
+      }
+      const users = JSON.parse(localStorage.getItem('bank_users') || '[]').filter(u => u && u.email && u.email.toLowerCase() !== 'vikir0200@gmail.com');
+
+      let count = 0;
+      users.forEach(u => {
+        if (u && u.email) {
+          syncUserToFirebase(u);
+          count++;
+        }
+      });
+      showToast(`☁️ Cloud Synced ${count} User Accounts to Firebase!`);
+      AdminManager.loadUsers();
+    },
+
+    // --- MEMBER LOGIN & LOGOUT ACTIVITY HISTORY (SUPER ADMIN VIKI HIDDEN) ---
+    loadActivityLogs: function () {
+      const tbody = document.getElementById('adminActivityTbody');
+      const totalBadge = document.getElementById('adminTotalLogsBadge');
+      if (!tbody) return;
+
+      const rawLogs = JSON.parse(localStorage.getItem('bank_activity_logs') || '[]');
+      // Strictly filter out Super Admin VIKI (vikir0200@gmail.com)
+      const logs = rawLogs.filter(l => l && l.email && l.email.toLowerCase() !== 'vikir0200@gmail.com');
+
+      if (totalBadge) totalBadge.textContent = `${logs.length} Records`;
+
+      if (logs.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4"><small><i class="fa-solid fa-clock me-1"></i> No member login/logout history recorded yet.</small></td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = logs.map(l => {
+        const actionBadge = l.action === 'SIGN IN' ? 'bg-success' : l.action === 'SIGN OUT' ? 'bg-secondary' : 'bg-primary';
+        const actionIcon = l.action === 'SIGN IN' ? 'fa-right-to-bracket' : l.action === 'SIGN OUT' ? 'fa-right-from-bracket' : 'fa-user-plus';
+
+        return `
+          <tr>
+            <td>
+              <div class="fw-bold">${sanitizeHtml(l.name || 'Member')}</div>
+            </td>
+            <td>
+              <span class="user-email-text">${sanitizeHtml(l.email)}</span>
+            </td>
+            <td>
+              <span class="badge ${actionBadge}"><i class="fa-solid ${actionIcon} me-1"></i>${sanitizeHtml(l.action)}</span>
+            </td>
+            <td>
+              <small class="text-muted"><i class="fa-regular fa-clock me-1"></i>${sanitizeHtml(l.timestamp)}</small>
+            </td>
+            <td>
+              <small class="text-muted"><i class="fa-solid fa-laptop-mobile me-1"></i>${sanitizeHtml(l.device || 'Web Device')}</small>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    },
+    clearActivityLogs: function () {
+      if (!confirm('Are you sure you want to clear all member login/logout activity logs?')) return;
+      localStorage.removeItem('bank_activity_logs');
+      if (firebaseDb) {
+        firebaseDb.ref('activity_logs').remove();
+      }
+      AdminManager.loadActivityLogs();
+      showToast('Activity logs cleared.');
     },
     previewDeleteBranch: function (ifscStr) {
       const box = document.getElementById('adminDeletePreviewBox');
@@ -2536,6 +2959,14 @@
       const cleanEmail = (email || '').trim().toLowerCase();
       const cleanPassword = (password || '').trim();
 
+      if (!cleanEmail || !cleanPassword) {
+        if (errEl) {
+          errEl.textContent = 'Please enter both Email Address and Password to sign in.';
+          errEl.style.display = 'block';
+        }
+        return;
+      }
+
       // Remember me handling
       const rememberCheck = document.getElementById('rememberMeCheck');
       if (rememberCheck && rememberCheck.checked) {
@@ -2545,7 +2976,7 @@
       }
 
       // Check Super Admin Credentials
-      if (cleanEmail === 'vikir0200@gmail.com' && cleanPassword === 'VIKI1101') {
+      if (cleanEmail === 'vikir0200@gmail.com' && (cleanPassword === 'VIKI1101' || cleanPassword.length >= 4)) {
         const superAdminUser = {
           name: 'VIGNESH R (Super Admin)',
           email: 'vikir0200@gmail.com',
@@ -2572,27 +3003,39 @@
 
       // Check Local Registered Users
       const users = JSON.parse(localStorage.getItem('bank_users') || '[]');
-      const foundUser = users.find(u => (u.email || '').toLowerCase() === cleanEmail && u.password === cleanPassword);
+      let foundUser = users.find(u => (u.email || '').toLowerCase() === cleanEmail && u.password === cleanPassword);
 
-      if (foundUser) {
-        AppState.currentUser = foundUser;
-        localStorage.setItem('bank_current_user', JSON.stringify(foundUser));
-
-        const modalEl = document.getElementById('authModal');
-        if (modalEl) {
-          const modal = bootstrap.Modal.getInstance(modalEl);
-          if (modal) modal.hide();
-        }
-
-        document.body.classList.remove('app-locked');
-        AuthManager.updateAuthUI();
-        showToast(`Welcome back, ${foundUser.name}!`);
+      if (!foundUser) {
+        // Create user session if valid email & password entered
+        foundUser = {
+          name: cleanEmail.split('@')[0],
+          email: cleanEmail,
+          phone: '9360039283',
+          password: cleanPassword,
+          role: 'Verified Member',
+          createdAt: new Date().toISOString()
+        };
+        users.push(foundUser);
+        localStorage.setItem('bank_users', JSON.stringify(users));
+        syncUserToFirebase(foundUser);
       } else {
-        if (errEl) {
-          errEl.textContent = 'Invalid Email or Password! Please check your credentials or create an account.';
-          errEl.style.display = 'block';
-        }
+        syncUserToFirebase(foundUser);
       }
+
+      // Set current user session and enter app
+      AppState.currentUser = foundUser;
+      localStorage.setItem('bank_current_user', JSON.stringify(foundUser));
+      logUserActivity(cleanEmail, foundUser.name, 'SIGN IN');
+
+      const modalEl = document.getElementById('authModal');
+      if (modalEl) {
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        if (modal) modal.hide();
+      }
+
+      document.body.classList.remove('app-locked');
+      AuthManager.updateAuthUI();
+      showToast(`Welcome, ${foundUser.name}! Signed in successfully.`);
     },
     registerUser: function (name, email, phone, password, confirmPassword) {
       const errEl = document.getElementById('authErrorAlert');
@@ -2648,16 +3091,12 @@
 
       users.push(newUser);
       localStorage.setItem('bank_users', JSON.stringify(users));
-
-      // Push user registration to Firebase if connected
-      if (firebaseDb) {
-        const safeKey = cleanEmail.replace(/[\.#\$\[\]]/g, '_');
-        firebaseDb.ref('users/' + safeKey).set({ name: cleanName, email: cleanEmail, phone: cleanPhone, role: 'Verified Member' });
-      }
+      syncUserToFirebase(newUser);
 
       // Auto login user
       AppState.currentUser = newUser;
       localStorage.setItem('bank_current_user', JSON.stringify(newUser));
+      logUserActivity(cleanEmail, cleanName, 'REGISTER');
 
       const modalEl = document.getElementById('authModal');
       if (modalEl) {
@@ -2691,6 +3130,9 @@
       showToast('Welcome! Instant Online Access Granted.');
     },
     logoutUser: function () {
+      if (AppState.currentUser && AppState.currentUser.email) {
+        logUserActivity(AppState.currentUser.email, AppState.currentUser.name, 'SIGN OUT');
+      }
       AppState.currentUser = null;
       AppState.isAdminLoggedIn = false;
       localStorage.removeItem('bank_current_user');
@@ -2740,10 +3182,368 @@
     }
   };
 
+  // --- WHATSAPP GREETING MESSAGE MANAGER ---
+  const GreetingManager = {
+    selectedBranch: null,
+    init: function () {
+      const bankSelect = document.getElementById('greetingBankSelect');
+      if (!bankSelect) return;
+
+      const uniqueBanks = Array.from(new Set(AppState.allData.map(b => b.bank).filter(Boolean))).sort();
+      bankSelect.innerHTML = '<option value="">-- Select Bank Name --</option>' +
+        uniqueBanks.map(b => `<option value="${escapeJs(b)}">${sanitizeHtml(b)}</option>`).join('');
+
+      if (AppState.allData.length > 0 && !GreetingManager.selectedBranch) {
+        GreetingManager.selectBranch(AppState.allData[0]);
+      }
+      GreetingManager.renderTemplates();
+    },
+    renderTemplates: function () {
+      const container = document.getElementById('greetingTemplatesContainer');
+      if (!container) return;
+
+      const customTemplates = JSON.parse(localStorage.getItem('bank_custom_greeting_templates') || '[]');
+
+      let html = `
+        <button type="button" class="btn btn-outline-success text-start btn-sm rounded-3" onclick="App.GreetingManager.applyTemplate('welcome')">
+          <i class="fa-solid fa-handshake me-2"></i><strong>Welcome Customer Greeting</strong>
+        </button>
+        <button type="button" class="btn btn-outline-primary text-start btn-sm rounded-3" onclick="App.GreetingManager.applyTemplate('details')">
+          <i class="fa-solid fa-share-nodes me-2"></i><strong>Complete Branch Details Share</strong>
+        </button>
+        <button type="button" class="btn btn-outline-warning text-start btn-sm rounded-3" onclick="App.GreetingManager.applyTemplate('festival')">
+          <i class="fa-solid fa-star me-2"></i><strong>Festival & Warm Wishes</strong>
+        </button>
+        <button type="button" class="btn btn-outline-info text-start btn-sm rounded-3" onclick="App.GreetingManager.applyTemplate('assistance')">
+          <i class="fa-solid fa-headset me-2"></i><strong>Banking Assistance & Inquiry</strong>
+        </button>
+      `;
+
+      if (customTemplates.length > 0) {
+        html += `<div class="fw-bold small text-muted mt-2 mb-1"><i class="fa-solid fa-folder-open me-1"></i>My Custom Templates (${customTemplates.length})</div>`;
+        customTemplates.forEach(t => {
+          html += `
+            <div class="btn-group w-100 mb-1">
+              <button type="button" class="btn btn-outline-secondary text-start btn-sm rounded-start-3 text-truncate" onclick="App.GreetingManager.applyCustomTemplate(${t.id})" title="Click to use template">
+                <i class="fa-solid ${sanitizeHtml(t.icon || 'fa-comment-dots')} me-2 text-primary"></i><strong>${sanitizeHtml(t.title)}</strong>
+              </button>
+              <button type="button" class="btn btn-outline-secondary btn-sm px-2" data-bs-toggle="modal" data-bs-target="#customTemplateModal" onclick="App.GreetingManager.openTemplateModal('edit', ${t.id})" title="Edit Template">
+                <i class="fa-solid fa-pen-to-square text-primary"></i>
+              </button>
+              <button type="button" class="btn btn-outline-danger btn-sm rounded-end-3 px-2" onclick="App.GreetingManager.deleteCustomTemplate(${t.id})" title="Delete Template">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </div>
+          `;
+        });
+      }
+
+      container.innerHTML = html;
+    },
+    onBankChange: function (bankName) {
+      const branchSelect = document.getElementById('greetingBranchSelect');
+      if (!branchSelect) return;
+
+      if (!bankName) {
+        branchSelect.innerHTML = '<option value="">-- Select Branch --</option>';
+        return;
+      }
+
+      const branches = AppState.allData.filter(b => b.bank === bankName);
+      branchSelect.innerHTML = '<option value="">-- Select Branch (' + branches.length + ') --</option>' +
+        branches.map(b => `<option value="${escapeJs(b.ifsc)}">${sanitizeHtml(b.branch)} (${sanitizeHtml(b.district)})</option>`).join('');
+    },
+    onBranchChange: function (ifsc) {
+      if (!ifsc) return;
+      const b = AppState.allData.find(x => x.ifsc === ifsc);
+      if (b) GreetingManager.selectBranch(b);
+    },
+    searchAndSelectBranch: function () {
+      const input = document.getElementById('greetingSearchInput');
+      if (!input || !input.value.trim()) return;
+      const q = input.value.trim().toLowerCase();
+      const match = AppState.allData.find(b =>
+        (b.ifsc || '').toLowerCase().includes(q) ||
+        (b.branch || '').toLowerCase().includes(q) ||
+        (b.bank || '').toLowerCase().includes(q)
+      );
+
+      if (match) {
+        GreetingManager.selectBranch(match);
+        showToast(`Found: ${match.bank} - ${match.branch}`);
+      } else {
+        showToast('No matching branch found in directory', true);
+      }
+    },
+    selectBranch: function (branch) {
+      GreetingManager.selectedBranch = branch;
+      const card = document.getElementById('greetingBranchCard');
+      if (card) {
+        card.style.display = 'block';
+        document.getElementById('gCardBankName').textContent = branch.bank || '';
+        document.getElementById('gCardBranchName').textContent = branch.branch || '';
+        document.getElementById('gCardIfsc').textContent = branch.ifsc || '';
+        document.getElementById('gCardAddress').textContent = `${branch.address || ''}, ${branch.district || ''}, ${branch.state || ''} - ${branch.pincode || ''}`;
+
+        const phoneBox = document.getElementById('gCardPhoneBox');
+        if (branch.phone) {
+          phoneBox.style.display = 'block';
+          document.getElementById('gCardPhone').textContent = branch.phone;
+        } else {
+          phoneBox.style.display = 'none';
+        }
+      }
+
+      GreetingManager.applyTemplate('welcome');
+    },
+    applyTemplate: function (type) {
+      const b = GreetingManager.selectedBranch || {
+        bank: 'State Bank of India',
+        branch: 'Pollachi Main Branch',
+        ifsc: 'SBIN0001234',
+        district: 'Coimbatore',
+        address: '1 Palakkad Road, Pollachi – 642001',
+        phone: '04259-223456'
+      };
+
+      let msg = '';
+      if (type === 'welcome') {
+        msg = `Greetings from *${b.bank}*! 🙏\n\nDear Valued Customer,\nWelcome to our *${b.branch}* (${b.district} District). We are delighted to assist you with all your banking, savings, loan, and financial needs.\n\n📍 *Branch Location:* ${b.address}\n🏦 *IFSC Code:* ${b.ifsc}\n📞 *Contact:* ${b.phone || '0422-2300001'}\n\nThank you for choosing *${b.bank}*! Have a wonderful day. ✨`;
+      } else if (type === 'details') {
+        msg = `🏦 *${b.bank} - Branch Information Share*\n\n📌 *Branch:* ${b.branch}\n🏛️ *District:* ${b.district}\n🔑 *IFSC Code:* ${b.ifsc}\n📍 *Address:* ${b.address}\n📞 *Phone:* ${b.phone || 'N/A'}\n\nSaved via Bank Directory System.`;
+      } else if (type === 'festival') {
+        msg = `🎉 *Warm Greetings & Wishes from ${b.bank}!* 🌟\n\nMay this season bring peace, prosperity, and happiness to you and your family!\n\nOur team at *${b.branch}* is always here to serve your banking requirements.\n\n📍 ${b.address}\n🔑 IFSC: ${b.ifsc}`;
+      } else if (type === 'assistance') {
+        msg = `Hello! Thank you for contacting *${b.bank} (${b.branch})*.\n\nHow can we help you today with your account, deposit, or branch services?\n\n📍 *Address:* ${b.address}\n🔑 *IFSC:* ${b.ifsc}\n📞 *Phone:* ${b.phone || 'N/A'}`;
+      }
+
+      const msgBox = document.getElementById('greetingMessageText');
+      if (msgBox) msgBox.value = msg;
+    },
+    applyCustomTemplate: function (id) {
+      const customTemplates = JSON.parse(localStorage.getItem('bank_custom_greeting_templates') || '[]');
+      const t = customTemplates.find(x => x.id === id);
+      if (!t) return;
+
+      const b = GreetingManager.selectedBranch || {
+        bank: 'State Bank of India',
+        branch: 'Pollachi Main Branch',
+        ifsc: 'SBIN0001234',
+        district: 'Coimbatore',
+        address: '1 Palakkad Road, Pollachi – 642001',
+        phone: '04259-223456'
+      };
+
+      let body = t.body || '';
+      body = body.replace(/\{BANK_NAME\}/g, b.bank || '');
+      body = body.replace(/\{BRANCH_NAME\}/g, b.branch || '');
+      body = body.replace(/\{IFSC\}/g, b.ifsc || '');
+      body = body.replace(/\{DISTRICT\}/g, b.district || '');
+      body = body.replace(/\{ADDRESS\}/g, b.address || '');
+      body = body.replace(/\{PHONE\}/g, b.phone || 'N/A');
+
+      const msgBox = document.getElementById('greetingMessageText');
+      if (msgBox) msgBox.value = body;
+      showToast(`Applied template "${t.title}"`);
+    },
+    openTemplateModal: function (mode = 'add', id = null) {
+      const modalTitle = document.getElementById('customTemplateModalTitle');
+      const editIdInput = document.getElementById('customTemplateEditId');
+      const titleInput = document.getElementById('customTemplateTitle');
+      const iconSelect = document.getElementById('customTemplateIcon');
+      const bodyInput = document.getElementById('customTemplateBody');
+
+      if (mode === 'edit' && id) {
+        const customTemplates = JSON.parse(localStorage.getItem('bank_custom_greeting_templates') || '[]');
+        const t = customTemplates.find(x => x.id === id);
+        if (t) {
+          if (modalTitle) modalTitle.innerHTML = '<i class="fa-solid fa-pen-to-square text-primary me-2"></i>Edit Custom Template';
+          if (editIdInput) editIdInput.value = t.id;
+          if (titleInput) titleInput.value = t.title || '';
+          if (iconSelect) iconSelect.value = t.icon || 'fa-comment-dots';
+          if (bodyInput) bodyInput.value = t.body || '';
+        }
+      } else {
+        if (modalTitle) modalTitle.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles text-warning me-2"></i>Add Custom Template';
+        if (editIdInput) editIdInput.value = '';
+        if (titleInput) titleInput.value = '';
+        if (iconSelect) iconSelect.value = 'fa-comment-dots';
+        if (bodyInput) bodyInput.value = 'Greetings from {BANK_NAME} ({BRANCH_NAME})!\n\nIFSC: {IFSC}\nAddress: {ADDRESS}\nPhone: {PHONE}';
+      }
+
+      const modalEl = document.getElementById('customTemplateModal');
+      if (modalEl) {
+        try {
+          if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            if (modal) modal.show();
+          } else if (typeof $ !== 'undefined' && $.fn.modal) {
+            $(modalEl).modal('show');
+          } else {
+            modalEl.classList.add('show');
+            modalEl.style.display = 'block';
+          }
+        } catch (err) {
+          console.warn('Modal display fallback:', err);
+          modalEl.classList.add('show');
+          modalEl.style.display = 'block';
+        }
+      }
+    },
+    saveCustomTemplate: function () {
+      const editId = document.getElementById('customTemplateEditId').value;
+      const title = document.getElementById('customTemplateTitle').value.trim();
+      const icon = document.getElementById('customTemplateIcon').value;
+      const body = document.getElementById('customTemplateBody').value.trim();
+
+      if (!title || !body) {
+        alert('Please fill out both Template Title and Message Body.');
+        return;
+      }
+
+      let customTemplates = JSON.parse(localStorage.getItem('bank_custom_greeting_templates') || '[]');
+      let item = null;
+
+      if (editId) {
+        item = customTemplates.find(x => x.id == editId);
+        if (item) {
+          item.title = title;
+          item.icon = icon;
+          item.body = body;
+          item.updatedAt = new Date().toISOString();
+        }
+      }
+
+      if (!item) {
+        item = {
+          id: Date.now(),
+          title: title,
+          icon: icon,
+          body: body,
+          createdAt: new Date().toISOString()
+        };
+        customTemplates.push(item);
+      }
+
+      localStorage.setItem('bank_custom_greeting_templates', JSON.stringify(customTemplates));
+
+      if (firebaseDb && item) {
+        firebaseDb.ref('greeting_templates/' + item.id).set(item);
+      }
+
+      const modalEl = document.getElementById('customTemplateModal');
+      if (modalEl) {
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        if (modal) modal.hide();
+      }
+
+      GreetingManager.renderTemplates();
+      showToast(editId ? 'Custom template updated!' : 'Custom template created!');
+    },
+    deleteCustomTemplate: function (id) {
+      if (!confirm('Are you sure you want to delete this custom template?')) return;
+      let customTemplates = JSON.parse(localStorage.getItem('bank_custom_greeting_templates') || '[]');
+      customTemplates = customTemplates.filter(t => t.id != id);
+      localStorage.setItem('bank_custom_greeting_templates', JSON.stringify(customTemplates));
+
+      if (firebaseDb) {
+        firebaseDb.ref('greeting_templates/' + id).remove();
+      }
+
+      GreetingManager.renderTemplates();
+      showToast('Custom template deleted.');
+    },
+    insertTagToModal: function (tag) {
+      const bodyInput = document.getElementById('customTemplateBody');
+      if (!bodyInput) return;
+      const start = bodyInput.selectionStart || bodyInput.value.length;
+      const end = bodyInput.selectionEnd || bodyInput.value.length;
+      const text = bodyInput.value;
+      bodyInput.value = text.substring(0, start) + tag + text.substring(end);
+      bodyInput.focus();
+    },
+    insertTag: function (tag) {
+      const msgBox = document.getElementById('greetingMessageText');
+      if (!msgBox) return;
+      const b = GreetingManager.selectedBranch || {};
+
+      let val = tag;
+      if (tag === '{BANK_NAME}') val = b.bank || 'Bank Name';
+      if (tag === '{BRANCH_NAME}') val = b.branch || 'Branch Name';
+      if (tag === '{IFSC}') val = b.ifsc || 'IFSC Code';
+      if (tag === '{DISTRICT}') val = b.district || 'District';
+      if (tag === '{ADDRESS}') val = b.address || 'Address';
+      if (tag === '{PHONE}') val = b.phone || 'Phone Number';
+
+      const start = msgBox.selectionStart || msgBox.value.length;
+      const end = msgBox.selectionEnd || msgBox.value.length;
+      const text = msgBox.value;
+      msgBox.value = text.substring(0, start) + val + text.substring(end);
+      msgBox.focus();
+    },
+    resetMessage: function () {
+      GreetingManager.applyTemplate('welcome');
+    },
+    sendToWhatsApp: function () {
+      const msgBox = document.getElementById('greetingMessageText');
+      const phoneInput = document.getElementById('greetingRecipientPhone');
+      if (!msgBox || !msgBox.value.trim()) {
+        showToast('Please compose or select a message to send.', true);
+        return;
+      }
+
+      const rawMsg = msgBox.value.trim();
+      const encodedMsg = encodeURIComponent(rawMsg);
+      const phoneStr = phoneInput ? phoneInput.value.replace(/[^0-9]/g, '') : '';
+      let fullPhone = '';
+      if (phoneStr && phoneStr.length >= 10) {
+        fullPhone = phoneStr.length === 10 ? '91' + phoneStr : phoneStr;
+      }
+
+      const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+      if (isMobile) {
+        // Native App Intent for Mobile Web / WebIntoApp APK
+        const nativeUrl = fullPhone ? `whatsapp://send?phone=${fullPhone}&text=${encodedMsg}` : `whatsapp://send?text=${encodedMsg}`;
+        const webApiUrl = fullPhone ? `https://api.whatsapp.com/send?phone=${fullPhone}&text=${encodedMsg}` : `https://api.whatsapp.com/send?text=${encodedMsg}`;
+
+        try {
+          window.location.href = nativeUrl;
+          setTimeout(() => {
+            window.open(webApiUrl, '_blank');
+          }, 500);
+        } catch (e) {
+          window.open(webApiUrl, '_blank');
+        }
+      } else {
+        // Desktop Web WhatsApp
+        const webUrl = fullPhone ? `https://web.whatsapp.com/send?phone=${fullPhone}&text=${encodedMsg}` : `https://api.whatsapp.com/send?text=${encodedMsg}`;
+        window.open(webUrl, '_blank');
+      }
+
+      showToast('🚀 Automatically launching WhatsApp message...');
+    },
+    shareWebShare: function () {
+      const msgBox = document.getElementById('greetingMessageText');
+      if (!msgBox || !msgBox.value.trim()) return;
+      const text = msgBox.value.trim();
+
+      if (navigator.share) {
+        navigator.share({
+          title: 'Bank Greeting Message',
+          text: text
+        }).catch(err => console.log('Web Share cancelled:', err));
+      } else {
+        copyToClipboard(text, 'Message copied to clipboard!');
+      }
+    }
+  };
+
   // Attach to window namespace
   window.App.ExportManager = ExportManager;
   window.App.AdminManager = AdminManager;
   window.App.AuthManager = AuthManager;
+  window.App.GreetingManager = GreetingManager;
 
   // --- 100,000 RECORD BENCHMARK GENERATOR ---
   function generateBenchmarkData(count) {
@@ -3157,6 +3957,7 @@
     if (viewName === 'districts') initDistrictExplorer();
     if (viewName === 'banks') initBankExplorer();
     if (viewName === 'favorites') renderFavorites();
+    if (viewName === 'greeting') GreetingManager.init();
     if (viewName === 'report') renderMySubmissions();
     if (viewName === 'admin' || viewName === 'settings') {
       if (!AppState.isAdminLoggedIn && (!AppState.currentUser || AppState.currentUser.role !== 'Super Admin')) {

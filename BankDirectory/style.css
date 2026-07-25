@@ -211,6 +211,87 @@ body.app-locked .app-container {
   color: #93c5fd !important;
 }
 
+/* User Accounts Table & Code Badge Dark Mode Support */
+.user-pass-code {
+  background-color: var(--input-bg, #f1f5f9);
+  color: var(--text-main, #0f172a);
+  border-color: var(--card-border, #cbd5e1) !important;
+}
+
+[data-theme="dark"] .user-pass-code {
+  background-color: #1e293b !important;
+  color: #38bdf8 !important;
+  border-color: #334155 !important;
+}
+
+.user-email-text {
+  color: #2563eb;
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+
+[data-theme="dark"] .user-email-text {
+  color: #60a5fa !important;
+}
+
+/* --- TABLE DARK MODE FIX & HIGH CONTRAST TEXT --- */
+[data-theme="dark"] .table {
+  --bs-table-bg: transparent !important;
+  --bs-table-accent-bg: transparent !important;
+  --bs-table-striped-bg: rgba(255, 255, 255, 0.03) !important;
+  --bs-table-hover-bg: rgba(255, 255, 255, 0.05) !important;
+  --bs-table-color: #f8fafc !important;
+  color: #f8fafc !important;
+  border-color: #334155 !important;
+  background-color: transparent !important;
+}
+
+[data-theme="dark"] .table > :not(caption) > * > * {
+  background-color: transparent !important;
+  color: #f8fafc !important;
+  border-bottom-color: #334155 !important;
+}
+
+[data-theme="dark"] .table thead th {
+  background-color: #1e293b !important;
+  color: #f8fafc !important;
+  border-bottom: 2px solid #334155 !important;
+}
+
+[data-theme="dark"] .table tbody tr {
+  background-color: transparent !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .table tbody tr td {
+  background-color: transparent !important;
+  color: #f8fafc !important;
+  border-color: #334155 !important;
+}
+
+[data-theme="dark"] .table-hover tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .btn:disabled,
+[data-theme="dark"] .btn.disabled {
+  color: #94a3b8 !important;
+  border-color: #475569 !important;
+  opacity: 0.7;
+}
+
+[data-theme="dark"] code {
+  color: #38bdf8 !important;
+  background-color: #1e293b !important;
+}
+
+[data-theme="dark"] .modal-header.bg-light {
+  background-color: #1e293b !important;
+  color: #f8fafc !important;
+  border-color: #334155 !important;
+}
+
 /* Font Size Scaling Options */
 body.font-large {
   --font-size-base: 1.125rem;
