@@ -251,51 +251,176 @@
 
         <!-- ==================== SECTION: DISTRICT EXPLORER ==================== -->
         <section class="view-section" id="view-districts">
-          <h4 class="fw-bold mb-1" data-i18n="district_title">District Directory Browser</h4>
-          <p class="text-muted mb-4" data-i18n="district_subtitle">Select a district to view all operating bank branches and summary stats</p>
+          <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+            <div>
+              <h4 class="fw-bold mb-1" data-i18n="district_title">District Directory Browser</h4>
+              <p class="text-muted mb-0" data-i18n="district_subtitle">Select a district or explore banks route-wise along travel highways</p>
+            </div>
 
-          <div class="row g-3 mb-4">
-            <!-- SELECT DISTRICT -->
-            <div class="col-12 col-md-6 col-lg-4">
-              <div class="glass-card h-100">
-                <label class="form-label fw-semibold" data-i18n="lbl_select_district"><i class="fa-solid fa-map-pin text-danger me-1"></i>Select District</label>
-                <select class="form-select" id="districtExplorerSelect">
-                  <option value="">-- Choose District --</option>
-                </select>
+            <!-- MODE SWITCH TABS: Single District vs Route-Wise Explorer -->
+            <div class="btn-group bg-light p-1 rounded-pill border" role="group">
+              <button type="button" class="btn btn-sm rounded-pill active-mode-btn px-3 fw-semibold" id="btnModeDistrict" onclick="App.RouteWiseManager.switchDistrictMode('district')">
+                <i class="fa-solid fa-map-location-dot me-1"></i> District Explorer
+              </button>
+              <button type="button" class="btn btn-sm rounded-pill px-3 fw-semibold text-muted" id="btnModeRoute" onclick="App.RouteWiseManager.switchDistrictMode('route')">
+                <i class="fa-solid fa-route me-1"></i> Route-Wise Directory
+              </button>
+            </div>
+          </div>
+
+          <!-- MODE 1: SINGLE DISTRICT EXPLORER CONTAINER -->
+          <div id="districtExplorerContainer" style="display: block;">
+            <div class="row g-3 mb-4">
+              <!-- SELECT DISTRICT -->
+              <div class="col-12 col-md-6 col-lg-4">
+                <div class="glass-card h-100">
+                  <label class="form-label fw-semibold" data-i18n="lbl_select_district"><i class="fa-solid fa-map-pin text-danger me-1"></i>Select District</label>
+                  <select class="form-select" id="districtExplorerSelect">
+                    <option value="">-- Choose District --</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- SELECT AREA / LOCALITY -->
+              <div class="col-12 col-md-6 col-lg-4">
+                <div class="glass-card h-100">
+                  <label class="form-label fw-semibold"><i class="fa-solid fa-location-dot text-primary me-1"></i>Select Area / Locality</label>
+                  <select class="form-select" id="districtAreaSelect" disabled>
+                    <option value="">-- All Areas in District --</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- DISTRICT STATS CARD -->
+              <div class="col-12 col-lg-4" id="districtStatsCard" style="display:none;">
+                <div class="glass-card h-100 d-flex align-items-center justify-content-around">
+                  <div class="text-center">
+                    <div class="text-muted" style="font-size:0.85rem;">Total Branches</div>
+                    <div class="fs-2 fw-bold text-primary" id="districtStatBranches">0</div>
+                  </div>
+                  <div class="vr"></div>
+                  <div class="text-center">
+                    <div class="text-muted" style="font-size:0.85rem;">Unique Banks</div>
+                    <div class="fs-2 fw-bold text-success" id="districtStatBanks">0</div>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <!-- SELECT AREA / LOCALITY -->
-            <div class="col-12 col-md-6 col-lg-4">
-              <div class="glass-card h-100">
-                <label class="form-label fw-semibold"><i class="fa-solid fa-location-dot text-primary me-1"></i>Select Area / Locality</label>
-                <select class="form-select" id="districtAreaSelect" disabled>
-                  <option value="">-- All Areas in District --</option>
-                </select>
-              </div>
-            </div>
-
-            <!-- DISTRICT STATS CARD -->
-            <div class="col-12 col-lg-4" id="districtStatsCard" style="display:none;">
-              <div class="glass-card h-100 d-flex align-items-center justify-content-around">
-                <div class="text-center">
-                  <div class="text-muted" style="font-size:0.85rem;">Total Branches</div>
-                  <div class="fs-2 fw-bold text-primary" id="districtStatBranches">0</div>
-                </div>
-                <div class="vr"></div>
-                <div class="text-center">
-                  <div class="text-muted" style="font-size:0.85rem;">Unique Banks</div>
-                  <div class="fs-2 fw-bold text-success" id="districtStatBanks">0</div>
-                </div>
+            <div class="row g-3" id="districtBranchGrid">
+              <!-- Dynamic cards -->
+              <div class="col-12 text-center text-muted py-5">
+                <i class="fa-solid fa-map-location-dot fs-1 mb-2"></i>
+                <p>Please select a district above to view bank branches.</p>
               </div>
             </div>
           </div>
 
-          <div class="row g-3" id="districtBranchGrid">
-            <!-- Dynamic cards -->
-            <div class="col-12 text-center text-muted py-5">
-              <i class="fa-solid fa-map-location-dot fs-1 mb-2"></i>
-              <p>Please select a district above to view bank branches.</p>
+          <!-- MODE 2: ROUTE-WISE BANK DIRECTORY CONTAINER -->
+          <div id="routeExplorerContainer" style="display: none;">
+            <!-- ROUTE SELECTOR PANEL -->
+            <div class="glass-card mb-4 p-4">
+              <div class="row g-3 align-items-end">
+                <div class="col-12 col-md-4">
+                  <label class="form-label fw-semibold text-dark"><i class="fa-solid fa-circle-dot text-success me-1"></i>Origin (From Town/District)</label>
+                  <select class="form-select border-primary-subtle" id="routeOriginSelect">
+                    <option value="Pollachi">Pollachi</option>
+                  </select>
+                </div>
+
+                <div class="col-12 col-md-1 text-center py-2">
+                  <button type="button" class="btn btn-light rounded-circle shadow-sm btn-swap-route" id="btnSwapRoute" title="Swap Route Direction">
+                    <i class="fa-solid fa-right-left text-primary"></i>
+                  </button>
+                </div>
+
+                <div class="col-12 col-md-4">
+                  <label class="form-label fw-semibold text-dark"><i class="fa-solid fa-location-dot text-danger me-1"></i>Destination (To Town/District)</label>
+                  <select class="form-select border-primary-subtle" id="routeDestSelect">
+                    <option value="Palani">Palani</option>
+                  </select>
+                </div>
+
+                <div class="col-12 col-md-3">
+                  <button type="button" class="btn btn-primary rounded-pill w-100 py-2 fw-semibold" id="btnSearchRouteBanks">
+                    <i class="fa-solid fa-route me-1"></i> View Route Banks
+                  </button>
+                </div>
+              </div>
+
+              <!-- POPULAR ROUTE PRESETS -->
+              <div class="mt-4 pt-3 border-top">
+                <label class="form-label small text-muted fw-semibold mb-2"><i class="fa-solid fa-fire text-warning me-1"></i>Popular Travel Routes:</label>
+                <div class="d-flex flex-wrap gap-2">
+                  <button class="preset-route-chip active" id="chip_POLLACHI_PALANI" onclick="App.RouteWiseManager.loadPresetRoute('POLLACHI_PALANI')">
+                    <i class="fa-solid fa-route me-1"></i> Pollachi ➔ Palani (NH83)
+                  </button>
+                  <button class="preset-route-chip" id="chip_COIMBATORE_POLLACHI" onclick="App.RouteWiseManager.loadPresetRoute('COIMBATORE_POLLACHI')">
+                    <i class="fa-solid fa-route me-1"></i> Coimbatore ➔ Pollachi
+                  </button>
+                  <button class="preset-route-chip" id="chip_MADURAI_PALANI" onclick="App.RouteWiseManager.loadPresetRoute('MADURAI_PALANI')">
+                    <i class="fa-solid fa-route me-1"></i> Madurai ➔ Palani
+                  </button>
+                  <button class="preset-route-chip" id="chip_CHENNAI_KANCHIPURAM" onclick="App.RouteWiseManager.loadPresetRoute('CHENNAI_KANCHIPURAM')">
+                    <i class="fa-solid fa-route me-1"></i> Chennai ➔ Kanchipuram
+                  </button>
+                  <button class="preset-route-chip" id="chip_SALEM_ERODE" onclick="App.RouteWiseManager.loadPresetRoute('SALEM_ERODE')">
+                    <i class="fa-solid fa-route me-1"></i> Salem ➔ Erode
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- ROUTE HEADER & STATS CARD -->
+            <div class="glass-card mb-4 p-4 border-start border-4 border-primary">
+              <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+                <div>
+                  <h5 class="fw-bold mb-1 text-primary" id="routeHeaderTitle"><i class="fa-solid fa-route me-2"></i>Pollachi to Palani Route</h5>
+                  <p class="text-muted small mb-0" id="routeSubText">NH83 Pollachi-Dindigul Highway | ~66 km | 4 Main Highway Towns</p>
+                </div>
+                
+                <!-- ROUTE SUMMARY STATS -->
+                <div class="d-flex gap-2 gap-md-3 flex-wrap">
+                  <div class="text-center px-3 py-1 bg-body rounded border">
+                    <small class="text-muted d-block" style="font-size:0.72rem;">Distance</small>
+                    <strong class="text-dark" id="statRouteDistance">~66 km</strong>
+                  </div>
+                  <div class="text-center px-3 py-1 bg-body rounded border">
+                    <small class="text-muted d-block" style="font-size:0.72rem;">Route Banks</small>
+                    <strong class="text-primary" id="statRouteTotalBranches">0</strong>
+                  </div>
+                  <div class="text-center px-3 py-1 bg-body rounded border">
+                    <small class="text-muted d-block" style="font-size:0.72rem;">Bank Brands</small>
+                    <strong class="text-success" id="statRouteTotalNetworks">0</strong>
+                  </div>
+                  <div class="text-center px-3 py-1 bg-body rounded border">
+                    <small class="text-muted d-block" style="font-size:0.72rem;">Stops</small>
+                    <strong class="text-info" id="statRouteStopsCount">4 Towns</strong>
+                  </div>
+                </div>
+              </div>
+
+              <!-- INTERACTIVE ROUTE TIMELINE NODES -->
+              <div class="route-timeline-wrapper py-3">
+                <div class="route-timeline">
+                  <div class="d-flex justify-content-between align-items-center w-100 position-relative" id="routeTimelineNodes">
+                    <!-- Dynamically populated timeline nodes -->
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- STOP FILTER PILLS & COUNT -->
+            <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+              <div class="d-flex align-items-center gap-2 flex-wrap" id="routeStopFilterPills">
+                <!-- Dynamically rendered stop filter buttons -->
+              </div>
+              <span class="text-muted small" id="routeFilteredCountText">Displaying branches along route</span>
+            </div>
+
+            <!-- ROUTE BRANCH GRID -->
+            <div class="row g-3" id="routeBranchGrid">
+              <!-- Dynamically rendered route bank cards -->
             </div>
           </div>
         </section>

@@ -63,7 +63,13 @@
       set_compact_view: 'Compact Table View',
       set_large_font: 'Large Accessibility Font',
       set_language: 'Language Preference',
-      lbl_select_lang: 'Active Interface Language'
+      lbl_select_lang: 'Active Interface Language',
+      mode_district: 'District Explorer',
+      mode_route: 'Route-Wise Directory',
+      lbl_origin: 'Origin / Starting Town',
+      lbl_destination: 'Destination Town',
+      btn_find_route_banks: 'Find Route Banks',
+      lbl_preset_routes: 'Popular Highway Routes:'
     },
     ta: {
       system_version: 'v3.0 ஆன்லைன் பதிப்பு',
@@ -101,8 +107,8 @@
       opt_all_banks: '-- அனைத்து வங்கிகள் --',
       btn_reset: 'மீட்டமைக்க',
       btn_search: 'தேடுக',
-      district_title: 'மாவட்ட வங்கி உலாவி',
-      district_subtitle: 'மாவட்டத்தைத் தேர்ந்தெடுத்து அங்குள்ள வங்கிக் கிளைகளைக் காணவும்',
+      district_title: 'மாவட்ட & வழித்தட வங்கி உலாவி',
+      district_subtitle: 'மாவட்டம் அல்லது வழித்தட நெடுஞ்சாலைகள் (எ.கா. பொள்ளாச்சி - பழனி) மூலம் வங்கிகளைக் காணவும்',
       lbl_select_district: 'மாவட்டத்தைத் தேர்ந்தெடுக்கவும்',
       bank_title: 'வங்கி நிறுவனம் வாரியாக',
       bank_subtitle: 'வங்கிகள் வாரியாக கிளைகளைக் கண்டறியவும்',
@@ -117,7 +123,13 @@
       set_compact_view: 'சுருக்கப்பட்ட அட்டவணை',
       set_large_font: 'பெரிய எழுத்துரு',
       set_language: 'மொழி தேர்வு',
-      lbl_select_lang: 'பயன்பாட்டு மொழி'
+      lbl_select_lang: 'பயன்பாட்டு மொழி',
+      mode_district: 'மாவட்ட உலாவி',
+      mode_route: 'வழித்தட வங்கி அடைவு',
+      lbl_origin: 'தொடக்க நகரம் / இடம்',
+      lbl_destination: 'செல்லும் நகரம்',
+      btn_find_route_banks: 'வழித்தட வங்கிகளைக் காண்',
+      lbl_preset_routes: 'பிரபலமான நெடுஞ்சாலை வழிகள்:'
     }
   };
 
@@ -185,7 +197,7 @@
     compactView: localStorage.getItem('bank_compact') === 'true',
     largeFont: localStorage.getItem('bank_large_font') === 'true',
     isAdminLoggedIn: sessionStorage.getItem('bank_super_admin_session') === 'true',
-    currentUser: JSON.parse(localStorage.getItem('bank_current_user') || 'null'),
+    currentUser: JSON.parse(localStorage.getItem('bank_current_user') || '{"name":"Active User","email":"user@bankdirectory.in","role":"Banking Directory User"}'),
     dataTable: null
   };
 
@@ -204,7 +216,8 @@
     resetToSeedData: resetToSeedData,
     ExportManager: {},
     AdminManager: {},
-    AuthManager: {}
+    AuthManager: {},
+    RouteWiseManager: {}
   };
 
   // --- FIREBASE REALTIME DATABASE CONFIGURATION ---
@@ -230,10 +243,39 @@
         console.log("Firebase initialized successfully");
         listenToFirebaseChanges();
         listenToFirebaseReports();
+        listenToFirebaseConnection();
       } catch (err) {
         console.warn("Firebase initialization warning:", err);
       }
     }
+  }
+
+  function listenToFirebaseConnection() {
+    if (!firebaseDb) return;
+    const connectedRef = firebaseDb.ref('.info/connected');
+    connectedRef.on('value', snap => {
+      const isConnected = snap.val() === true;
+      const footerEl = document.getElementById('networkStatusFooter');
+      const badgeEl = document.getElementById('topbarCloudStatusBadge');
+
+      if (isConnected) {
+        if (footerEl) {
+          footerEl.innerHTML = `<i class="fa-solid fa-wifi text-success me-1"></i> <span data-i18n="status_online">Online Mode (Firebase Cloud DB Active)</span>`;
+        }
+        if (badgeEl) {
+          badgeEl.className = 'badge bg-success-subtle text-success border border-success-subtle rounded-pill d-none d-md-flex align-items-center gap-1 px-3 py-1';
+          badgeEl.innerHTML = `<span class="online-pulse"></span> Online Cloud DB`;
+        }
+      } else {
+        if (footerEl) {
+          footerEl.innerHTML = `<i class="fa-solid fa-wifi-slash text-warning me-1"></i> <span>Offline Mode (Local Cache Active)</span>`;
+        }
+        if (badgeEl) {
+          badgeEl.className = 'badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill d-none d-md-flex align-items-center gap-1 px-3 py-1';
+          badgeEl.innerHTML = `<i class="fa-solid fa-cloud-slash me-1 text-warning"></i> Offline Mode`;
+        }
+      }
+    });
   }
 
   function listenToFirebaseChanges() {
@@ -781,7 +823,6 @@
         grid.innerHTML = '<div class="col-12 text-center text-muted py-5"><i class="fa-solid fa-map-location-dot fs-1 mb-2"></i><p>Please select a district above to view bank branches.</p></div>';
         return;
       }
-
       let branches = AppState.allData.filter(i => i.district === dist);
 
       if (area) {
@@ -848,7 +889,418 @@
     areaSelect.addEventListener('change', function () {
       renderFilteredDistrictBranches();
     });
+
+    // Initialize RouteWiseManager
+    RouteWiseManager.init();
   }
+
+  // --- ROUTE-WISE BANK DIRECTORY MANAGER ---
+  const PRESET_ROUTES = {
+    POLLACHI_PALANI: {
+      id: 'POLLACHI_PALANI',
+      nameEn: 'Pollachi to Palani Route',
+      nameTa: 'பொள்ளாச்சி - பழனி வழித்தடம்',
+      origin: 'Pollachi',
+      destination: 'Palani',
+      stops: ['Pollachi', 'Udumalaipettai', 'Madathukulam', 'Palani'],
+      distance: '~66 km',
+      highway: 'NH83 Pollachi-Dindigul Highway',
+      stopDistances: { 'Pollachi': '0 km', 'Udumalaipettai': '28 km', 'Madathukulam': '42 km', 'Palani': '66 km' }
+    },
+    COIMBATORE_POLLACHI: {
+      id: 'COIMBATORE_POLLACHI',
+      nameEn: 'Coimbatore to Pollachi Route',
+      nameTa: 'கோயம்புத்தூர் - பொள்ளாச்சி வழித்தடம்',
+      origin: 'Coimbatore',
+      destination: 'Pollachi',
+      stops: ['Coimbatore', 'Eachanari', 'Kinathukadavu', 'Pollachi'],
+      distance: '~44 km',
+      highway: 'NH83 Coimbatore-Pollachi Highway',
+      stopDistances: { 'Coimbatore': '0 km', 'Eachanari': '10 km', 'Kinathukadavu': '22 km', 'Pollachi': '44 km' }
+    },
+    MADURAI_PALANI: {
+      id: 'MADURAI_PALANI',
+      nameEn: 'Madurai to Palani Route',
+      nameTa: 'மதுரை - பழனி வழித்தடம்',
+      origin: 'Madurai',
+      destination: 'Palani',
+      stops: ['Madurai', 'Vadipatti', 'Dindigul', 'Palani'],
+      distance: '~115 km',
+      highway: 'NH44 & NH83 Route',
+      stopDistances: { 'Madurai': '0 km', 'Vadipatti': '28 km', 'Dindigul': '64 km', 'Palani': '115 km' }
+    },
+    CHENNAI_KANCHIPURAM: {
+      id: 'CHENNAI_KANCHIPURAM',
+      nameEn: 'Chennai to Kanchipuram Route',
+      nameTa: 'சென்னை - காஞ்சிபுரம் வழித்தடம்',
+      origin: 'Chennai',
+      destination: 'Kanchipuram',
+      stops: ['Chennai', 'Tambaram', 'Sriperumbudur', 'Kanchipuram'],
+      distance: '~75 km',
+      highway: 'NH48 Expressway',
+      stopDistances: { 'Chennai': '0 km', 'Tambaram': '28 km', 'Sriperumbudur': '42 km', 'Kanchipuram': '75 km' }
+    },
+    SALEM_ERODE: {
+      id: 'SALEM_ERODE',
+      nameEn: 'Salem to Erode Route',
+      nameTa: 'சேலம் - ஈரோடு வழித்தடம்',
+      origin: 'Salem',
+      destination: 'Erode',
+      stops: ['Salem', 'Sankari', 'Bhavani', 'Erode'],
+      distance: '~64 km',
+      highway: 'NH544 Salem-Kochi Highway',
+      stopDistances: { 'Salem': '0 km', 'Sankari': '32 km', 'Bhavani': '52 km', 'Erode': '64 km' }
+    }
+  };
+
+  const RouteWiseManager = {
+    activeRouteId: 'POLLACHI_PALANI',
+    activeStopFilter: 'ALL',
+    currentRouteData: null,
+
+    init: function () {
+      this.populateRouteDropdowns();
+      this.bindEvents();
+      this.loadPresetRoute(this.activeRouteId || 'POLLACHI_PALANI');
+    },
+
+    switchDistrictMode: function (mode) {
+      const distContainer = document.getElementById('districtExplorerContainer');
+      const routeContainer = document.getElementById('routeExplorerContainer');
+      const btnDist = document.getElementById('btnModeDistrict');
+      const btnRoute = document.getElementById('btnModeRoute');
+
+      if (mode === 'district') {
+        if (distContainer) distContainer.style.display = 'block';
+        if (routeContainer) routeContainer.style.display = 'none';
+        if (btnDist) btnDist.className = 'btn btn-sm rounded-pill active-mode-btn px-3 fw-semibold';
+        if (btnRoute) btnRoute.className = 'btn btn-sm rounded-pill px-3 fw-semibold text-muted';
+      } else {
+        if (distContainer) distContainer.style.display = 'none';
+        if (routeContainer) routeContainer.style.display = 'block';
+        if (btnDist) btnDist.className = 'btn btn-sm rounded-pill px-3 fw-semibold text-muted';
+        if (btnRoute) btnRoute.className = 'btn btn-sm rounded-pill active-mode-btn px-3 fw-semibold';
+        this.init();
+      }
+    },
+
+    populateRouteDropdowns: function () {
+      const originSelect = document.getElementById('routeOriginSelect');
+      const destSelect = document.getElementById('routeDestSelect');
+      if (!originSelect || !destSelect) return;
+
+      const townsSet = new Set(['Pollachi', 'Palani', 'Udumalaipettai', 'Madathukulam', 'Coimbatore', 'Madurai', 'Dindigul', 'Chennai', 'Salem', 'Erode', 'Karur', 'Kinathukadavu']);
+      
+      AppState.allData.forEach(b => {
+        if (b.district) townsSet.add(b.district);
+        if (b.branch) {
+          const firstWord = b.branch.split(' ')[0];
+          if (firstWord && firstWord.length > 3) townsSet.add(firstWord);
+        }
+      });
+
+      const sortedTowns = Array.from(townsSet).sort();
+
+      const curOrigin = originSelect.value || 'Pollachi';
+      const curDest = destSelect.value || 'Palani';
+
+      originSelect.innerHTML = sortedTowns.map(t => `<option value="${t}" ${t === curOrigin ? 'selected' : ''}>${t}</option>`).join('');
+      destSelect.innerHTML = sortedTowns.map(t => `<option value="${t}" ${t === curDest ? 'selected' : ''}>${t}</option>`).join('');
+    },
+
+    bindEvents: function () {
+      const btnSwap = document.getElementById('btnSwapRoute');
+      const btnSearch = document.getElementById('btnSearchRouteBanks');
+
+      if (btnSwap) {
+        btnSwap.onclick = () => {
+          const originSelect = document.getElementById('routeOriginSelect');
+          const destSelect = document.getElementById('routeDestSelect');
+          if (originSelect && destSelect) {
+            const temp = originSelect.value;
+            originSelect.value = destSelect.value;
+            destSelect.value = temp;
+            this.searchCustomRoute();
+          }
+        };
+      }
+
+      if (btnSearch) {
+        btnSearch.onclick = () => this.searchCustomRoute();
+      }
+    },
+
+    loadPresetRoute: function (routeId) {
+      const preset = PRESET_ROUTES[routeId];
+      if (!preset) return;
+
+      this.activeRouteId = routeId;
+      this.activeStopFilter = 'ALL';
+
+      document.querySelectorAll('.preset-route-chip').forEach(c => c.classList.remove('active'));
+      const activeChip = document.getElementById(`chip_${routeId}`);
+      if (activeChip) activeChip.classList.add('active');
+
+      const originSelect = document.getElementById('routeOriginSelect');
+      const destSelect = document.getElementById('routeDestSelect');
+      if (originSelect) originSelect.value = preset.origin;
+      if (destSelect) destSelect.value = preset.destination;
+
+      this.processAndRenderRoute(preset);
+    },
+
+    searchCustomRoute: function () {
+      const origin = document.getElementById('routeOriginSelect').value;
+      const dest = document.getElementById('routeDestSelect').value;
+
+      let matchedPreset = Object.values(PRESET_ROUTES).find(p => 
+        (p.origin.toLowerCase() === origin.toLowerCase() && p.destination.toLowerCase() === dest.toLowerCase()) ||
+        (p.origin.toLowerCase() === dest.toLowerCase() && p.destination.toLowerCase() === origin.toLowerCase())
+      );
+
+      if (matchedPreset) {
+        if (origin.toLowerCase() === matchedPreset.destination.toLowerCase()) {
+          const reversedStops = [...matchedPreset.stops].reverse();
+          const routeObj = {
+            id: matchedPreset.id + '_REV',
+            nameEn: `${origin} to ${dest} Route`,
+            nameTa: `${origin} - ${dest} வழித்தடம்`,
+            origin: origin,
+            destination: dest,
+            stops: reversedStops,
+            distance: matchedPreset.distance,
+            highway: matchedPreset.highway,
+            stopDistances: matchedPreset.stopDistances
+          };
+          this.processAndRenderRoute(routeObj);
+          return;
+        }
+        this.loadPresetRoute(matchedPreset.id);
+        return;
+      }
+
+      const stops = [origin, dest];
+      const customRouteObj = {
+        id: 'CUSTOM',
+        nameEn: `${origin} to ${dest} Transit Route`,
+        nameTa: `${origin} - ${dest} வழித்தடம்`,
+        origin: origin,
+        destination: dest,
+        stops: stops,
+        distance: '~ Direct Route',
+        highway: 'Highway Route',
+        stopDistances: { [origin]: 'Start', [dest]: 'End' }
+      };
+
+      this.processAndRenderRoute(customRouteObj);
+    },
+
+    processAndRenderRoute: function (routeObj) {
+      this.currentRouteData = routeObj;
+
+      const stopBranchMap = {};
+      let totalBranchesCount = 0;
+      const bankNetworksSet = new Set();
+
+      routeObj.stops.forEach(stop => {
+        const stopLower = stop.toLowerCase();
+        const branches = AppState.allData.filter(b => {
+          const bBranch = (b.branch || '').toLowerCase();
+          const bDist = (b.district || '').toLowerCase();
+          const bAddr = (b.address || '').toLowerCase();
+
+          return bBranch.includes(stopLower) || bDist.includes(stopLower) || bAddr.includes(stopLower);
+        });
+
+        stopBranchMap[stop] = branches;
+        totalBranchesCount += branches.length;
+        branches.forEach(b => { if (b.bank) bankNetworksSet.add(b.bank); });
+      });
+
+      routeObj.stopBranchMap = stopBranchMap;
+      routeObj.totalBranches = totalBranchesCount;
+      routeObj.totalNetworks = bankNetworksSet.size;
+
+      const titleEl = document.getElementById('routeHeaderTitle');
+      const subTextEl = document.getElementById('routeSubText');
+      if (titleEl) titleEl.innerHTML = `<i class="fa-solid fa-route me-2"></i>${sanitizeHtml(routeObj.nameEn)}`;
+      if (subTextEl) subTextEl.textContent = `${routeObj.highway} | ${routeObj.distance} | ${routeObj.stops.length} Main Highway Towns`;
+
+      document.getElementById('statRouteDistance').textContent = routeObj.distance;
+      document.getElementById('statRouteTotalBranches').textContent = totalBranchesCount;
+      document.getElementById('statRouteTotalNetworks').textContent = bankNetworksSet.size;
+      document.getElementById('statRouteStopsCount').textContent = `${routeObj.stops.length} Towns`;
+
+      this.renderTimeline(routeObj);
+      this.renderStopFilterPills(routeObj);
+      this.renderRouteBranchGrid();
+    },
+
+    renderTimeline: function (routeObj) {
+      const container = document.getElementById('routeTimelineNodes');
+      if (!container) return;
+
+      container.innerHTML = routeObj.stops.map((stop, idx) => {
+        const count = (routeObj.stopBranchMap[stop] || []).length;
+        const distLabel = routeObj.stopDistances[stop] || '';
+        const isOrigin = idx === 0;
+        const isDest = idx === routeObj.stops.length - 1;
+        const iconClass = isOrigin ? 'fa-flag-checkered text-success' : isDest ? 'fa-location-dot text-danger' : 'fa-building-columns text-primary';
+        const isActive = this.activeStopFilter === stop;
+
+        return `
+          <div class="route-step-node ${isActive ? 'active' : ''}" onclick="App.RouteWiseManager.filterByStop('${escapeJs(stop)}')">
+            ${distLabel ? `<span class="route-dist-badge">${distLabel}</span>` : ''}
+            <div class="route-step-circle">
+              <i class="fa-solid ${iconClass}"></i>
+            </div>
+            <div class="route-step-title">${sanitizeHtml(stop)}</div>
+            <div class="route-step-count text-muted"><span class="badge bg-primary-subtle text-primary border rounded-pill">${count} Banks</span></div>
+          </div>
+        `;
+      }).join('');
+    },
+
+    renderStopFilterPills: function (routeObj) {
+      const container = document.getElementById('routeStopFilterPills');
+      if (!container) return;
+
+      let html = `<button class="btn btn-sm rounded-pill ${this.activeStopFilter === 'ALL' ? 'btn-primary' : 'btn-outline-secondary'}" onclick="App.RouteWiseManager.filterByStop('ALL')">
+        All Route Branches (${routeObj.totalBranches})
+      </button>`;
+
+      routeObj.stops.forEach(stop => {
+        const count = (routeObj.stopBranchMap[stop] || []).length;
+        const isActive = this.activeStopFilter === stop;
+        html += `<button class="btn btn-sm rounded-pill ${isActive ? 'btn-primary' : 'btn-outline-secondary'}" onclick="App.RouteWiseManager.filterByStop('${escapeJs(stop)}')">
+          ${sanitizeHtml(stop)} (${count})
+        </button>`;
+      });
+
+      container.innerHTML = html;
+    },
+
+    filterByStop: function (stopName) {
+      this.activeStopFilter = stopName;
+      if (this.currentRouteData) {
+        this.renderTimeline(this.currentRouteData);
+        this.renderStopFilterPills(this.currentRouteData);
+        this.renderRouteBranchGrid();
+      }
+    },
+
+    renderRouteBranchGrid: function () {
+      const grid = document.getElementById('routeBranchGrid');
+      const countEl = document.getElementById('routeFilteredCountText');
+      if (!grid || !this.currentRouteData) return;
+
+      let branchesToDisplay = [];
+
+      if (this.activeStopFilter === 'ALL') {
+        this.currentRouteData.stops.forEach(stop => {
+          const list = this.currentRouteData.stopBranchMap[stop] || [];
+          list.forEach(b => {
+            branchesToDisplay.push({ ...b, routeStop: stop });
+          });
+        });
+      } else {
+        const list = this.currentRouteData.stopBranchMap[this.activeStopFilter] || [];
+        list.forEach(b => {
+          branchesToDisplay.push({ ...b, routeStop: this.activeStopFilter });
+        });
+      }
+
+      if (countEl) {
+        countEl.textContent = `Displaying ${branchesToDisplay.length} bank branches along route`;
+      }
+
+      if (branchesToDisplay.length === 0) {
+        grid.innerHTML = '<div class="col-12 text-center text-muted py-5"><i class="fa-solid fa-building-circle-xmark fs-1 mb-2"></i><p>No bank branches found for this specific route stop.</p></div>';
+        return;
+      }
+
+      grid.innerHTML = branchesToDisplay.map(item => `
+        <div class="col-12 col-md-6 col-lg-4">
+          <div class="glass-card h-100 d-flex flex-column position-relative">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <div>
+                <span class="badge bg-secondary-subtle text-dark border rounded-pill small mb-1">
+                  <i class="fa-solid fa-map-pin me-1 text-danger"></i>${sanitizeHtml(item.routeStop)} Stop
+                </span>
+                <h6 class="fw-bold text-primary mb-0">${sanitizeHtml(item.bank)}</h6>
+              </div>
+              <span class="badge-ifsc">${sanitizeHtml(item.ifsc)}</span>
+            </div>
+            
+            <div class="fw-semibold text-dark mb-1">${sanitizeHtml(item.branch)}</div>
+            <p class="text-muted small mb-2 flex-grow-1"><i class="fa-solid fa-location-dot me-1 text-primary"></i>${sanitizeHtml(item.address)}</p>
+            
+            <div class="d-flex align-items-center justify-content-between text-muted small border-top pt-2 mb-2" style="font-size:0.78rem;">
+              <span><i class="fa-solid fa-city me-1"></i>${sanitizeHtml(item.district)}</span>
+              <span><i class="fa-solid fa-phone me-1 text-success"></i>${sanitizeHtml(item.phone || 'Available')}</span>
+            </div>
+
+            <div class="d-flex gap-2 pt-2 border-top">
+              <button class="btn btn-sm btn-outline-secondary rounded-pill flex-fill" onclick="App.copyToClipboard('${escapeJs(item.ifsc)}', 'IFSC Copied!')">
+                <i class="fa-regular fa-copy me-1"></i> Copy IFSC
+              </button>
+              <button class="btn btn-sm btn-outline-primary rounded-pill flex-fill" onclick="App.openQrModal('${escapeJs(item.ifsc)}')">
+                <i class="fa-solid fa-qrcode me-1"></i> Details & Maps
+              </button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    },
+
+    openGoogleMapsRoute: function () {
+      if (!this.currentRouteData) return;
+      const origin = encodeURIComponent(this.currentRouteData.origin);
+      const dest = encodeURIComponent(this.currentRouteData.destination);
+      const waypoints = this.currentRouteData.stops.slice(1, -1).map(s => encodeURIComponent(s)).join('/');
+      
+      let url = `https://www.google.com/maps/dir/${origin}/`;
+      if (waypoints) url += `${waypoints}/`;
+      url += dest;
+
+      window.open(url, '_blank');
+    },
+
+    exportRouteExcel: function () {
+      if (!this.currentRouteData) return;
+      const exportData = [];
+
+      this.currentRouteData.stops.forEach(stop => {
+        const list = this.currentRouteData.stopBranchMap[stop] || [];
+        list.forEach(b => {
+          exportData.push({
+            "Route Stop": stop,
+            "Bank Name": b.bank,
+            "Branch": b.branch,
+            "IFSC": b.ifsc,
+            "MICR": b.micr || '-',
+            "District": b.district,
+            "State": b.state,
+            "Address": b.address,
+            "Pincode": b.pincode || '-',
+            "Phone": b.phone || '-'
+          });
+        });
+      });
+
+      if (typeof XLSX !== 'undefined') {
+        const worksheet = XLSX.utils.json_to_sheet(exportData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, `${this.currentRouteData.origin}_${this.currentRouteData.destination}_Banks`);
+        XLSX.writeFile(workbook, `Route_Bank_Details_${this.currentRouteData.origin}_to_${this.currentRouteData.destination}.xlsx`);
+        showToast('Exported route bank details to Excel!');
+      } else {
+        showToast('Excel exporter unavailable.');
+      }
+    }
+  };
+
+  window.App.RouteWiseManager = RouteWiseManager;
 
   // --- BANK EXPLORER VIEW ---
   function initBankExplorer() {
@@ -2123,6 +2575,27 @@
       document.body.classList.remove('app-locked');
       AuthManager.updateAuthUI();
       showToast(`Account created successfully! Welcome, ${cleanName}!`);
+    },
+    loginGuestUser: function () {
+      const guestUser = {
+        name: 'Online Guest User',
+        email: 'onlineguest@bankdirectory.com',
+        phone: '9360039283',
+        role: 'Verified Member',
+        createdAt: new Date().toISOString()
+      };
+      AppState.currentUser = guestUser;
+      localStorage.setItem('bank_current_user', JSON.stringify(guestUser));
+
+      const modalEl = document.getElementById('authModal');
+      if (modalEl) {
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        if (modal) modal.hide();
+      }
+
+      document.body.classList.remove('app-locked');
+      AuthManager.updateAuthUI();
+      showToast('Welcome! Instant Online Access Granted.');
     },
     logoutUser: function () {
       AppState.currentUser = null;
