@@ -622,6 +622,80 @@
     populateSelect('filterDistrict', Array.from(districts).sort(), TRANSLATIONS[AppState.language].opt_all_districts);
     populateSelect('filterBank', Array.from(banks).sort(), TRANSLATIONS[AppState.language].opt_all_banks);
     populateSelect('districtExplorerSelect', Array.from(districts).sort(), '-- Choose District --');
+    populateDistrictNavBar();
+  }
+
+  // --- DISTRICT NAVIGATION BAR HELPERS ---
+  function populateDistrictNavBar() {
+    const pillsContainer = document.getElementById('quickDistrictPills');
+    const azContainer = document.getElementById('districtAzNav');
+    if (!pillsContainer) return;
+
+    const districtSet = new Set();
+    AppState.allData.forEach(item => {
+      if (item.district) districtSet.add(item.district);
+    });
+
+    const districts = Array.from(districtSet).sort();
+
+    // Generate A-Z Alphabet Filter Bar
+    if (azContainer) {
+      const letters = new Set();
+      districts.forEach(d => {
+        const firstChar = d.charAt(0).toUpperCase();
+        if (/[A-Z]/.test(firstChar)) letters.add(firstChar);
+      });
+      const sortedLetters = Array.from(letters).sort();
+
+      azContainer.innerHTML = `<button class="btn btn-xs rounded-pill btn-primary az-btn active" onclick="App.filterDistrictNavByLetter('ALL')">ALL</button>` +
+        sortedLetters.map(l => `<button class="btn btn-xs rounded-pill btn-outline-secondary az-btn" onclick="App.filterDistrictNavByLetter('${l}')">${l}</button>`).join('');
+    }
+
+    renderQuickDistrictPills(districts);
+  }
+
+  function renderQuickDistrictPills(districtsList) {
+    const container = document.getElementById('quickDistrictPills');
+    if (!container) return;
+
+    const activeDist = document.getElementById('districtExplorerSelect')?.value || '';
+
+    container.innerHTML = districtsList.map(d => {
+      const count = AppState.allData.filter(i => i.district === d).length;
+      const isActive = d === activeDist;
+      return `
+        <button class="district-pill-btn ${isActive ? 'active' : ''}" onclick="App.selectDistrictFromNav('${escapeJs(d)}')">
+          <i class="fa-solid fa-map-pin text-danger me-1"></i>${sanitizeHtml(d)}
+          <span class="badge bg-primary-subtle text-primary border rounded-pill ms-1">${count}</span>
+        </button>
+      `;
+    }).join('');
+  }
+
+  function selectDistrictFromNav(districtName) {
+    RouteWiseManager.switchDistrictMode('district');
+    const select = document.getElementById('districtExplorerSelect');
+    if (select) {
+      select.value = districtName;
+      select.dispatchEvent(new Event('change'));
+    }
+    const allDistricts = Array.from(new Set(AppState.allData.map(i => i.district).filter(Boolean))).sort();
+    renderQuickDistrictPills(allDistricts);
+  }
+
+  function filterDistrictNavByLetter(letter) {
+    document.querySelectorAll('.az-btn').forEach(btn => {
+      btn.classList.toggle('btn-primary', btn.textContent === letter);
+      btn.classList.toggle('btn-outline-secondary', btn.textContent !== letter);
+    });
+
+    const allDistricts = Array.from(new Set(AppState.allData.map(i => i.district).filter(Boolean))).sort();
+    if (letter === 'ALL') {
+      renderQuickDistrictPills(allDistricts);
+    } else {
+      const filtered = allDistricts.filter(d => d.toUpperCase().startsWith(letter));
+      renderQuickDistrictPills(filtered);
+    }
   }
 
   function populateSelect(id, items, defaultText) {
@@ -3173,6 +3247,8 @@
   window.App.submitMissingBranch = submitMissingBranch;
   window.App.clearReportForm = clearReportForm;
   window.App.renderMySubmissions = renderMySubmissions;
+  window.App.selectDistrictFromNav = selectDistrictFromNav;
+  window.App.filterDistrictNavByLetter = filterDistrictNavByLetter;
 
   // Handle incoming password reset link clicked from Gmail inbox
   const urlParams = new URLSearchParams(window.location.search);
