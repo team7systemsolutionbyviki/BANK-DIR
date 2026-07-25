@@ -229,6 +229,7 @@
         firebaseDb = firebase.database();
         console.log("Firebase initialized successfully");
         listenToFirebaseChanges();
+        listenToFirebaseReports();
       } catch (err) {
         console.warn("Firebase initialization warning:", err);
       }
@@ -288,6 +289,38 @@
     firebaseDb.ref('banks/' + safeKey).remove()
       .then(() => console.log('Firebase deleted branch:', ifsc))
       .catch(err => console.error('Firebase delete error:', err));
+  }
+
+  // --- FIREBASE USER REPORTS SYNC ---
+  function listenToFirebaseReports() {
+    if (!firebaseDb) return;
+    const ref = firebaseDb.ref('user_reports');
+    ref.on('value', snapshot => {
+      const cloudReports = snapshot.val();
+      if (cloudReports) {
+        const reportsArray = Object.values(cloudReports).sort((a, b) => (b.id || 0) - (a.id || 0));
+        localStorage.setItem('bank_user_reports', JSON.stringify(reportsArray));
+        renderMySubmissions();
+        const adminView = document.getElementById('view-admin');
+        if (adminView && adminView.classList.contains('active')) {
+          AdminManager.loadReports();
+        }
+      }
+    });
+  }
+
+  function syncReportToFirebase(report) {
+    if (!firebaseDb || !report || !report.id) return;
+    firebaseDb.ref('user_reports/' + report.id).set(report)
+      .then(() => console.log('Firebase synced report:', report.id))
+      .catch(err => console.error('Firebase report save error:', err));
+  }
+
+  function deleteReportFromFirebase(id) {
+    if (!firebaseDb || !id) return;
+    firebaseDb.ref('user_reports/' + id).remove()
+      .then(() => console.log('Firebase deleted report:', id))
+      .catch(err => console.error('Firebase report delete error:', err));
   }
 
   // --- INITIALIZATION ENTRY POINT ---
@@ -1253,6 +1286,8 @@
       updateDashboardStats();
 
       localStorage.setItem('bank_user_reports', JSON.stringify(reports));
+      syncBranchToFirebase(newBranch);
+      syncReportToFirebase(reports[idx]);
       AdminManager.loadReports();
     },
     rejectReport: function (id) {
@@ -1268,6 +1303,7 @@
       if (idx === -1) return;
       reports[idx].status = 'Rejected';
       localStorage.setItem('bank_user_reports', JSON.stringify(reports));
+      syncReportToFirebase(reports[idx]);
       AdminManager.loadReports();
       showToast('Submission rejected by Super Admin.');
     },
@@ -1282,6 +1318,7 @@
       const reports = JSON.parse(localStorage.getItem('bank_user_reports') || '[]');
       const updated = reports.filter(r => r.id !== id);
       localStorage.setItem('bank_user_reports', JSON.stringify(updated));
+      deleteReportFromFirebase(id);
       AdminManager.loadReports();
       showToast('🗑️ Submission record deleted by Super Admin.');
     },
@@ -2237,10 +2274,11 @@
       isDuplicate: !!existingMatch
     };
 
-    // Save to localStorage
+    // Save to localStorage and Firebase Realtime Database
     const existing = JSON.parse(localStorage.getItem('bank_user_reports') || '[]');
     existing.unshift(report);
     localStorage.setItem('bank_user_reports', JSON.stringify(existing));
+    syncReportToFirebase(report);
 
     // Show success
     const successEl = document.getElementById('reportSuccessAlert');
