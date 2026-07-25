@@ -301,13 +301,16 @@
             }
           });
 
-          AppState.allData = Array.from(ifscMap.values());
-          AppState.filteredData = [...AppState.allData];
-          if (AppState.dataTable) {
-            AppState.dataTable.clear().rows.add(AppState.allData).draw();
+          const newArray = Array.from(ifscMap.values());
+          if (newArray.length !== AppState.allData.length) {
+            AppState.allData = newArray;
+            AppState.filteredData = [...AppState.allData];
+            if (AppState.dataTable) {
+              AppState.dataTable.clear().rows.add(AppState.allData).draw(false);
+            }
+            populateSearchDropdowns();
+            updateDashboardStats();
           }
-          populateSearchDropdowns();
-          updateDashboardStats();
         }
       } else {
         // Firebase Cloud DB is empty -> Auto-seed online cloud database with full dataset
