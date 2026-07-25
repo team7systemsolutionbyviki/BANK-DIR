@@ -2979,27 +2979,6 @@
       });
     });
 
-    // Prevent Mobile Chrome / Safari Pull-to-Refresh Page Reload on Touch Drag
-    let touchStartY = 0;
-    document.addEventListener('touchstart', function (e) {
-      if (e.touches && e.touches.length === 1) {
-        touchStartY = e.touches[0].clientY;
-      }
-    }, { passive: true });
-
-    document.addEventListener('touchmove', function (e) {
-      if (e.touches && e.touches.length === 1) {
-        const touchY = e.touches[0].clientY;
-        const touchDiff = touchY - touchStartY;
-        const scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
-        if (scrollTop <= 0 && touchDiff > 0) {
-          if (e.cancelable) {
-            e.preventDefault();
-          }
-        }
-      }
-    }, { passive: false });
-
     // Sidebar Toggle Navigation (Desktop Collapse & Mobile Drawer)
     const btnSidebarToggle = document.getElementById('btnSidebarToggle');
     const sidebar = document.getElementById('sidebar');
