@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Professional Offline Bank Directory Search System - Search IFSC, MICR, Branches, Districts across India offline.">
+  <title>Bank Directory Search System | Professional Offline Banking Tool</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- Bootstrap 5 CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+
+  <!-- DataTables CSS & Extensions -->
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css">
+
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="app-container">
+
+    <!-- ==================== SIDEBAR ==================== -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-brand-logo">
+          <i class="fa-solid fa-building-columns"></i>
+        </div>
+        <div>
+          <div class="sidebar-brand-text">BankDirectory</div>
+          <small class="text-muted" style="font-size:0.75rem;" data-i18n="system_version">v2.5 Offline Suite</small>
+        </div>
+      </div>
+
+      <ul class="sidebar-menu">
+        <li class="sidebar-item">
+          <a class="sidebar-link active" data-view="search">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <span data-i18n="nav_search">Search Directory</span>
+          </a>
+        </li>
+        <li class="sidebar-item">
+          <a class="sidebar-link" data-view="districts">
+            <i class="fa-solid fa-map-location-dot"></i>
+            <span data-i18n="nav_districts">Districts</span>
+          </a>
+        </li>
+        <li class="sidebar-item">
+          <a class="sidebar-link" data-view="banks">
+            <i class="fa-solid fa-vault"></i>
+            <span data-i18n="nav_banks">Banks</span>
+          </a>
+        </li>
+        <li class="sidebar-item">
+          <a class="sidebar-link" data-view="favorites">
+            <i class="fa-solid fa-star"></i>
+            <span data-i18n="nav_favorites">Saved Branches</span>
+          </a>
+        </li>
+        <li class="sidebar-item" id="sidebarAdminNavItem" style="display: none;">
+          <a class="sidebar-link" data-view="admin">
+            <i class="fa-solid fa-user-shield"></i>
+            <span data-i18n="nav_admin">Admin Panel</span>
+          </a>
+        </li>
+        <li class="sidebar-item" id="sidebarSettingsNavItem" style="display: none;">
+          <a class="sidebar-link" data-view="settings">
+            <i class="fa-solid fa-sliders"></i>
+            <span data-i18n="nav_settings">Settings</span>
+          </a>
+        </li>
+        <li class="sidebar-item">
+          <a class="sidebar-link" data-view="report">
+            <i class="fa-solid fa-circle-plus"></i>
+            <span>Add Missing Bank</span>
+          </a>
+        </li>
+        <li class="sidebar-item">
+          <a class="sidebar-link" data-view="about">
+            <i class="fa-solid fa-circle-info"></i>
+            <span data-i18n="nav_about">About & Help</span>
+          </a>
+        </li>
+      </ul>
+
+      <div class="sidebar-footer" id="networkStatusFooter">
+        <i class="fa-solid fa-wifi text-success me-1"></i> <span data-i18n="status_online">Online Mode</span>
+      </div>
+    </aside>
+
+    <!-- ==================== MAIN WRAPPER ==================== -->
+    <div class="main-wrapper">
+
+      <!-- TOPBAR -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="btn-toggle-sidebar" id="btnSidebarToggle" title="Toggle Navigation">
+            <i class="fa-solid fa-bars"></i>
+          </button>
+          <div class="global-search-box">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="globalSearchInput" placeholder="Quick IFSC, Bank, Branch search..." data-i18n-placeholder="search_placeholder">
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <!-- Live Clock -->
+          <div class="live-clock-badge d-none d-md-flex align-items-center gap-2">
+            <i class="fa-regular fa-clock text-primary"></i>
+            <span id="liveClockDisplay">--:--:--</span>
+          </div>
+
+          <!-- Language Selector -->
+          <select id="langSelect" class="form-select form-select-sm" style="width: auto; cursor:pointer;">
+            <option value="en">English</option>
+            <option value="ta">தமிழ் (Tamil)</option>
+          </select>
+
+          <!-- Theme Switcher Button -->
+          <button class="topbar-btn" id="btnThemeToggle" title="Toggle Light/Dark Theme">
+            <i class="fa-solid fa-moon" id="themeIcon"></i>
+          </button>
+
+          <!-- Notification Bell -->
+          <button class="topbar-btn" id="btnNotifications" title="Notifications">
+            <i class="fa-regular fa-bell"></i>
+            <span class="notification-badge"></span>
+          </button>
+
+          <!-- User Authentication Container -->
+          <div id="topbarUserAuthContainer">
+            <!-- Rendered dynamically by JS -->
+          </div>
+        </div>
+      </header>
+
+      <!-- CONTENT BODY -->
+      <main class="content-body" id="contentBody">
+
+        <!-- ==================== SECTION: SEARCH DIRECTORY ==================== -->
+        <section class="view-section active" id="view-search">
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <div>
+              <h4 class="fw-bold mb-1" data-i18n="search_title">Bank Directory Search</h4>
+              <p class="text-muted mb-0" style="font-size:0.85rem;" data-i18n="search_subtitle">Filter by State, District, Bank Name, IFSC, MICR, or Branch Address</p>
+            </div>
+            <button class="btn btn-outline-secondary btn-sm rounded-pill" id="btnToggleSearchPanel">
+              <i class="fa-solid fa-filter me-1"></i> Toggle Filters
+            </button>
+          </div>
+
+          <!-- MULTI-CONDITION SEARCH PANEL -->
+          <div class="search-panel" id="searchPanel">
+            <form id="searchForm" onsubmit="return false;">
+              <div class="row g-3">
+                <div class="col-12 col-md-4">
+                  <label class="form-label" data-i18n="lbl_state">State</label>
+                  <select class="form-select" id="filterState">
+                    <option value="" data-i18n="opt_all_states">-- All States --</option>
+                  </select>
+                </div>
+
+                <div class="col-12 col-md-4">
+                  <label class="form-label" data-i18n="lbl_district">District</label>
+                  <select class="form-select" id="filterDistrict">
+                    <option value="" data-i18n="opt_all_districts">-- All Districts --</option>
+                  </select>
+                </div>
+
+                <div class="col-12 col-md-4">
+                  <label class="form-label" data-i18n="lbl_bank_name">Bank Name</label>
+                  <select class="form-select" id="filterBank">
+                    <option value="" data-i18n="opt_all_banks">-- All Banks --</option>
+                  </select>
+                </div>
+
+                <div class="col-12 col-md-4 position-relative">
+                  <label class="form-label" data-i18n="lbl_branch_name">Branch Name</label>
+                  <input type="text" class="form-control" id="filterBranch" placeholder="e.g. Pollachi, RS Puram..." autocomplete="off">
+                  <div class="auto-suggest-dropdown" id="suggestBranch"></div>
+                </div>
+
+                <div class="col-12 col-md-4">
+                  <label class="form-label" data-i18n="lbl_ifsc">IFSC Code</label>
+                  <input type="text" class="form-control" id="filterIfsc" placeholder="e.g. SBIN0000899" autocomplete="off" style="text-transform:uppercase;">
+                </div>
+
+                <div class="col-12 col-md-4">
+                  <label class="form-label" data-i18n="lbl_micr">MICR Code</label>
+                  <input type="text" class="form-control" id="filterMicr" placeholder="e.g. 642002001" autocomplete="off">
+                </div>
+
+                <div class="col-12">
+                  <label class="form-label" data-i18n="lbl_address">Address Keywords</label>
+                  <input type="text" class="form-control" id="filterAddress" placeholder="Street, landmark, pincode...">
+                </div>
+
+                <div class="col-12 d-flex align-items-center justify-content-end gap-2 mt-3">
+                  <button type="button" class="btn btn-light rounded-pill px-4" id="btnResetFilters">
+                    <i class="fa-solid fa-rotate-left me-1"></i> <span data-i18n="btn_reset">Reset Filters</span>
+                  </button>
+                  <button type="submit" class="btn btn-primary rounded-pill px-4" id="btnApplySearch">
+                    <i class="fa-solid fa-magnifying-glass me-1"></i> <span data-i18n="btn_search">Search Directory</span>
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+
+          <!-- DATATABLE CARD -->
+          <div class="glass-card">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+              <div class="text-muted" style="font-size:0.85rem;" id="tableResultCountText">
+                Showing all records
+              </div>
+            </div>
+
+            <!-- RESULT TABLE -->
+            <div class="table-responsive">
+              <table id="bankTable" class="table table-hover align-middle w-100">
+                <thead>
+                  <tr>
+                    <th>Bank Name</th>
+                    <th>Branch</th>
+                    <th>IFSC</th>
+                    <th>MICR</th>
+                    <th>District</th>
+                    <th>State</th>
+                    <th>Address</th>
+                    <th>Phone / Email</th>
+                    <th class="text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Populated dynamically by DataTables JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ==================== SECTION: DISTRICT EXPLORER ==================== -->
+        <section class="view-section" id="view-districts">
+          <h4 class="fw-bold mb-1" data-i18n="district_title">District Directory Browser</h4>
+          <p class="text-muted mb-4" data-i18n="district_subtitle">Select a district to view all operating bank branches and summary stats</p>
+
+          <div class="row g-3 mb-4">
+            <!-- SELECT DISTRICT -->
+            <div class="col-12 col-md-6 col-lg-4">
+              <div class="glass-card h-100">
+                <label class="form-label fw-semibold" data-i18n="lbl_select_district"><i class="fa-solid fa-map-pin text-danger me-1"></i>Select District</label>
+                <select class="form-select" id="districtExplorerSelect">
+                  <option value="">-- Choose District --</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- SELECT AREA / LOCALITY -->
+            <div class="col-12 col-md-6 col-lg-4">
+              <div class="glass-card h-100">
+                <label class="form-label fw-semibold"><i class="fa-solid fa-location-dot text-primary me-1"></i>Select Area / Locality</label>
+                <select class="form-select" id="districtAreaSelect" disabled>
+                  <option value="">-- All Areas in District --</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- DISTRICT STATS CARD -->
+            <div class="col-12 col-lg-4" id="districtStatsCard" style="display:none;">
+              <div class="glass-card h-100 d-flex align-items-center justify-content-around">
+                <div class="text-center">
+                  <div class="text-muted" style="font-size:0.85rem;">Total Branches</div>
+                  <div class="fs-2 fw-bold text-primary" id="districtStatBranches">0</div>
+                </div>
+                <div class="vr"></div>
+                <div class="text-center">
+                  <div class="text-muted" style="font-size:0.85rem;">Unique Banks</div>
+                  <div class="fs-2 fw-bold text-success" id="districtStatBanks">0</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row g-3" id="districtBranchGrid">
+            <!-- Dynamic cards -->
+            <div class="col-12 text-center text-muted py-5">
+              <i class="fa-solid fa-map-location-dot fs-1 mb-2"></i>
+              <p>Please select a district above to view bank branches.</p>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ==================== SECTION: BANK EXPLORER ==================== -->
+        <section class="view-section" id="view-banks">
+          <h4 class="fw-bold mb-1" data-i18n="bank_title">Bank Network Directory</h4>
+          <p class="text-muted mb-4" data-i18n="bank_subtitle">Explore branches organized by banking institutions</p>
+
+          <div class="row g-3 mb-4" id="bankExplorerGrid">
+            <!-- Bank Institution Cards -->
+          </div>
+        </section>
+
+
+        <!-- ==================== SECTION: DEDICATED BANK BRANCHES VIEW ==================== -->
+        <section class="view-section" id="view-bank-branches">
+          <button class="btn btn-outline-secondary rounded-pill btn-sm mb-3 px-3" onclick="App.switchView('banks')">
+            <i class="fa-solid fa-arrow-left me-1"></i> Back to Bank Directory
+          </button>
+          <div class="d-flex align-items-center justify-content-between mb-4">
+            <div>
+              <h4 class="fw-bold mb-1" id="dedicatedBankTitle">Bank Branches</h4>
+              <p class="text-muted mb-0" id="dedicatedBankSubtext">All operating branches</p>
+            </div>
+          </div>
+
+          <div class="row g-3" id="dedicatedBankBranchGrid">
+            <!-- Populated via JS -->
+          </div>
+        </section>
+
+
+        <!-- ==================== SECTION: FAVORITES ==================== -->
+        <section class="view-section" id="view-favorites">
+          <div class="d-flex align-items-center justify-content-between mb-4">
+            <div>
+              <h4 class="fw-bold mb-1" data-i18n="fav_title">Bookmarked Bank Branches</h4>
+              <p class="text-muted mb-0" data-i18n="fav_subtitle">Quick access to your saved branches for easy copy and maps access</p>
+            </div>
+            <button class="btn btn-outline-danger btn-sm rounded-pill" id="btnClearFavorites" style="display:none;">
+              <i class="fa-solid fa-trash me-1"></i> Clear All
+            </button>
+          </div>
+
+          <div class="row g-3" id="favoritesGrid">
+            <!-- Populated via JS -->
+          </div>
+        </section>
+
+
+        <!-- ==================== SECTION: ADMIN PANEL ==================== -->
+        <section class="view-section" id="view-admin">
+          <div class="d-flex align-items-center justify-content-between mb-4">
+            <div>
+              <h4 class="fw-bold mb-1" data-i18n="admin_title">Admin & Data Management</h4>
+              <p class="text-muted mb-0" data-i18n="admin_subtitle">Import datasets, edit records, backup & restore directory database</p>
+            </div>
+            <!-- SUPER ADMIN STATUS BADGE -->
+            <div id="adminAuthBadgeContainer">
+              <!-- Rendered dynamically by JS -->
+            </div>
+          </div>
+
+          <!-- ADMIN LOCKED LOCK SCREEN CARD -->
+          <div class="glass-card text-center p-5 mb-4" id="adminLockedCard" style="display: block;">
+            <div class="sidebar-brand-logo mx-auto mb-3" style="width: 64px; height: 64px; font-size: 2rem; background: var(--danger-gradient);">
+              <i class="fa-solid fa-lock"></i>
+            </div>
+            <h4 class="fw-bold mb-2 text-danger">Super Admin Access Required</h4>
+            <p class="text-muted mb-4" style="max-width: 480px; margin: 0 auto;">
+              Administrative operations (Adding/Editing branches, Data import, Backup & Restore) are restricted to authorized Super Admin personnel.
+            </p>
+            <button class="btn btn-primary rounded-pill px-4" onclick="App.AdminManager.openLoginModal()">
+              <i class="fa-solid fa-key me-2"></i> Super Admin Login
+            </button>
+          </div>
+
+          <!-- ADMIN CONTENT CONTAINER (Visible only when logged in) -->
+          <div id="adminContentContainer" style="display: none;">
+            <div class="row g-3 mb-4">
+              <!-- ADD BRANCH CARD -->
+              <div class="col-12 col-md-6">
+                <div class="glass-card h-100">
+                  <h5 class="fw-bold mb-2"><i class="fa-solid fa-plus-circle me-2 text-primary"></i>Add New Branch</h5>
+                  <p class="text-muted small mb-3">Insert a single bank branch into your local directory database.</p>
+                  <button class="btn btn-primary rounded-pill" onclick="App.AdminManager.openAddModal()">
+                    <i class="fa-solid fa-plus me-1"></i> Add Branch
+                  </button>
+                </div>
+              </div>
+
+              <!-- DIRECT BANK REMOVAL TOOL CARD -->
+              <div class="col-12 col-md-6">
+                <div class="glass-card h-100">
+                  <div class="d-flex align-items-center justify-content-between mb-2">
+                    <h5 class="fw-bold mb-0 text-danger"><i class="fa-solid fa-trash-can me-2"></i>Direct Bank Branch Removal</h5>
+                    <span class="badge bg-danger text-white rounded-pill" style="font-size:0.7rem;">Super Admin: VIKIR0200@GMAIL.COM</span>
+                  </div>
+                  <p class="text-muted small mb-2">Search and remove any bank branch directly by IFSC Code.</p>
+                  <div class="input-group mb-2">
+                    <input type="text" class="form-control text-uppercase" id="adminDeleteIfscInput" placeholder="e.g. SBIN0001234" maxlength="11" oninput="App.AdminManager.previewDeleteBranch(this.value)">
+                    <button class="btn btn-danger fw-semibold px-3" type="button" onclick="App.AdminManager.deleteBranchByInput()">
+                      <i class="fa-solid fa-trash-can me-1"></i> Delete Bank
+                    </button>
+                  </div>
+                  <div id="adminDeletePreviewBox" class="small text-muted p-2 rounded bg-light border" style="display:none;"></div>
+                </div>
+              </div>
+
+              <!-- BACKUP & RESTORE -->
+              <div class="col-12 col-md-12">
+                <div class="glass-card h-100">
+                  <h5 class="fw-bold mb-2"><i class="fa-solid fa-database me-2 text-success"></i>Database Backup & Restore</h5>
+                  <p class="text-muted small mb-3">Backup database state or restore from previously saved JSON file.</p>
+                  <div class="d-flex gap-2">
+                    <button class="btn btn-outline-success btn-sm rounded-pill" onclick="App.AdminManager.backupDatabase()">
+                      <i class="fa-solid fa-download me-1"></i> Backup JSON
+                    </button>
+                    <label class="btn btn-outline-primary btn-sm rounded-pill mb-0">
+                      <i class="fa-solid fa-upload me-1"></i> Restore JSON
+                      <input type="file" id="restoreFile" accept=".json" style="display:none;" onchange="App.AdminManager.restoreDatabase(event)">
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <!-- BATCH IMPORT CARD (SheetJS) -->
+              <div class="col-12">
+                <div class="glass-card">
+                  <h5 class="fw-bold mb-2"><i class="fa-solid fa-file-import me-2 text-warning"></i>Batch File Import (JSON / CSV / Excel)</h5>
+                  <p class="text-muted small mb-2">Upload <code>.json</code>, <code>.csv</code>, or <code>.xlsx</code> files to merge bank branches into directory.</p>
+
+                  <!-- DOWNLOAD TEMPLATE ROW -->
+                  <div class="d-flex flex-wrap gap-2 align-items-center mb-3 p-3 rounded-3" style="background:rgba(59,130,246,0.07); border:1px dashed rgba(59,130,246,0.3);">
+                    <div class="flex-grow-1">
+                      <div class="fw-semibold small mb-1"><i class="fa-solid fa-file-arrow-down text-primary me-1"></i>Download Template First</div>
+                      <small class="text-muted">Fill in the template with your branch data, then upload it below.</small>
+                    </div>
+                    <button class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-semibold" onclick="App.AdminManager.downloadTemplate('csv')">
+                      <i class="fa-solid fa-file-csv me-1"></i> CSV Template
+                    </button>
+                    <button class="btn btn-outline-success btn-sm rounded-pill px-3 fw-semibold" onclick="App.AdminManager.downloadTemplate('json')">
+                      <i class="fa-solid fa-file-code me-1"></i> JSON Template
+                    </button>
+                    <button class="btn btn-success btn-sm rounded-pill px-3 fw-semibold" onclick="App.AdminManager.downloadTemplate('excel')">
+                      <i class="fa-solid fa-file-excel me-1"></i> Excel Template
+                    </button>
+                  </div>
+
+                  <!-- UPLOAD INPUT -->
+                  <label class="form-label fw-semibold small">Upload File</label>
+                  <input type="file" class="form-control" id="importFile" accept=".json,.csv,.xlsx,.xls" onchange="App.AdminManager.importFile(event)">
+                </div>
+              </div>
+
+              <!-- USER SUBMITTED REPORTS - APPROVAL LIST -->
+              <div class="col-12">
+                <div class="glass-card">
+                  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                    <div class="d-flex align-items-center flex-wrap gap-2">
+                      <h5 class="fw-bold mb-0">
+                        <i class="fa-solid fa-inbox me-2 text-primary"></i>User Submitted Reports
+                        <span class="badge bg-danger rounded-pill ms-1" id="pendingReportsCount" style="font-size:0.75rem;" title="Pending Submissions">0 Pending</span>
+                        <span class="badge bg-warning text-dark rounded-pill ms-1" id="duplicateReportsCount" style="font-size:0.75rem;" title="Duplicate Submissions Detected">0 Duplicates</span>
+                      </h5>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                      <div class="btn-group btn-group-sm" role="group" id="reportsFilterGroup">
+                        <button type="button" class="btn btn-outline-primary active btn-sm rounded-start-pill" onclick="App.AdminManager.setReportsFilter('all', this)">All</button>
+                        <button type="button" class="btn btn-outline-warning text-dark btn-sm" onclick="App.AdminManager.setReportsFilter('duplicates', this)"><i class="fa-solid fa-triangle-exclamation me-1"></i>Duplicates</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm rounded-end-pill" onclick="App.AdminManager.setReportsFilter('pending', this)">Pending</button>
+                      </div>
+                      <button class="btn btn-outline-secondary btn-sm rounded-pill" onclick="App.AdminManager.loadReports()" title="Refresh Reports List">
+                        <i class="fa-solid fa-rotate"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <p class="text-muted small mb-3">Review user branch submissions. Submissions marked with duplicate warnings already match existing records in the bank directory.</p>
+                  <div id="adminReportsList">
+                    <div class="text-center text-muted py-4">
+                      <i class="fa-solid fa-inbox fa-2x mb-2 d-block opacity-50"></i>
+                      <small>No pending submissions.</small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ==================== SECTION: REPORT MISSING BANK ==================== -->
+        <section class="view-section" id="view-report">
+          <div class="d-flex align-items-center gap-3 mb-1">
+            <div class="sidebar-brand-logo" style="width:44px;height:44px;font-size:1.2rem;">
+              <i class="fa-solid fa-circle-plus"></i>
+            </div>
+            <div>
+              <h4 class="fw-bold mb-0">Add Missing Bank / Branch</h4>
+              <p class="text-muted mb-0" style="font-size:0.9rem;">Submit a missing bank branch to our directory. Your submission will be reviewed.</p>
+            </div>
+          </div>
+          <hr class="my-3">
+
+          <div class="row g-4">
+            <div class="col-12 col-lg-7">
+              <div class="glass-card">
+                <h5 class="fw-bold mb-4"><i class="fa-solid fa-pen-to-square text-primary me-2"></i>Branch Details Form</h5>
+
+                <div id="reportSuccessAlert" class="alert alert-success d-flex align-items-center gap-2 mb-3" style="display:none !important;">
+                  <i class="fa-solid fa-circle-check fs-5"></i>
+                  <div>
+                    <strong>Submitted Successfully!</strong><br>
+                    <small>Thank you! Your branch report has been saved for review.</small>
+                  </div>
+                </div>
+
+                <form id="reportBranchForm" onsubmit="return false;" novalidate>
+                  <div class="row g-3">
+                    <div class="col-12 col-md-6">
+                      <label class="form-label fw-semibold">Bank Name <span class="text-danger">*</span></label>
+                      <input type="text" class="form-control" id="rptBank" placeholder="e.g. State Bank of India" required>
+                    </div>
+                    <div class="col-12 col-md-6">
+                      <label class="form-label fw-semibold">Branch Name <span class="text-danger">*</span></label>
+                      <input type="text" class="form-control" id="rptBranch" placeholder="e.g. Coimbatore Main Branch" required>
+                    </div>
+                    <div class="col-12 col-md-6">
+                      <label class="form-label fw-semibold">IFSC Code <span class="text-danger">*</span></label>
+                      <input type="text" class="form-control text-uppercase" id="rptIfsc" placeholder="e.g. SBIN0001234" maxlength="11" required>
+                    </div>
+                    <div class="col-12 col-md-6">
+                      <label class="form-label fw-semibold">MICR Code</label>
+                      <input type="text" class="form-control" id="rptMicr" placeholder="e.g. 641002003">
+                    </div>
+                    <div class="col-12 col-md-6">
+                      <label class="form-label fw-semibold">District <span class="text-danger">*</span></label>
+                      <input type="text" class="form-control" id="rptDistrict" placeholder="e.g. Coimbatore" required>
+                    </div>
+                    <div class="col-12 col-md-6">
+                      <label class="form-label fw-semibold">State <span class="text-danger">*</span></label>
+                      <input type="text" class="form-control" id="rptState" placeholder="e.g. Tamil Nadu" required>
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label fw-semibold">Full Branch Address <span class="text-danger">*</span></label>
+                      <input type="text" class="form-control" id="rptAddress" placeholder="e.g. 12 Gandhi Road, Coimbatore – 641001" required>
+                    </div>
+                    <div class="col-12 col-md-4">
+                      <label class="form-label fw-semibold">Pincode</label>
+                      <input type="text" class="form-control" id="rptPincode" placeholder="e.g. 641001" maxlength="6">
+                    </div>
+                    <div class="col-12 col-md-4">
+                      <label class="form-label fw-semibold">Phone</label>
+                      <input type="text" class="form-control" id="rptPhone" placeholder="e.g. 0422-2345678">
+                    </div>
+                    <div class="col-12 col-md-4">
+                      <label class="form-label fw-semibold">Email</label>
+                      <input type="email" class="form-control" id="rptEmail" placeholder="e.g. coimbatore@sbi.co.in">
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label fw-semibold">Additional Notes</label>
+                      <textarea class="form-control" id="rptNotes" rows="2" placeholder="Any additional information about this branch..."></textarea>
+                    </div>
+                    <div class="col-12 d-flex gap-2 pt-2">
+                      <button type="submit" class="btn btn-primary rounded-pill px-4 fw-semibold" onclick="App.submitMissingBranch()">
+                        <i class="fa-solid fa-paper-plane me-2"></i>Submit Report
+                      </button>
+                      <button type="button" class="btn btn-outline-secondary rounded-pill px-4" onclick="App.clearReportForm()">
+                        <i class="fa-solid fa-rotate-left me-1"></i>Clear
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            <div class="col-12 col-lg-5">
+              <div class="glass-card mb-3">
+                <h6 class="fw-bold mb-3 text-primary"><i class="fa-solid fa-circle-info me-2"></i>How It Works</h6>
+                <div class="d-flex flex-column gap-3">
+                  <div class="d-flex align-items-start gap-3">
+                    <div class="badge bg-primary rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:28px;height:28px;">1</div>
+                    <p class="mb-0 small text-muted">Fill in the branch details in the form. Fields marked with <span class="text-danger fw-bold">*</span> are mandatory.</p>
+                  </div>
+                  <div class="d-flex align-items-start gap-3">
+                    <div class="badge bg-primary rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:28px;height:28px;">2</div>
+                    <p class="mb-0 small text-muted">Click <strong>Submit Report</strong>. Your submission is saved locally and queued for Super Admin review.</p>
+                  </div>
+                  <div class="d-flex align-items-start gap-3">
+                    <div class="badge bg-primary rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:28px;height:28px;">3</div>
+                    <p class="mb-0 small text-muted">After Super Admin approval, the branch will be added to the official directory.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="glass-card">
+                <h6 class="fw-bold mb-3 text-success"><i class="fa-solid fa-list-check me-2"></i>My Submissions</h6>
+                <div id="mySubmissionsList">
+                  <small class="text-muted">No submissions yet. Fill the form to submit a missing branch.</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ==================== SECTION: SETTINGS ==================== -->
+        <section class="view-section" id="view-settings">
+          <h4 class="fw-bold mb-1" data-i18n="settings_title">System Settings</h4>
+          <p class="text-muted mb-4" data-i18n="settings_subtitle">Customize interface preferences, language, font scaling, and data storage</p>
+
+          <div class="row g-3">
+            <div class="col-12 col-md-6">
+              <div class="glass-card">
+                <h6 class="fw-bold mb-3" data-i18n="set_appearance">Appearance & Theme</h6>
+                
+                <div class="form-check form-switch mb-3">
+                  <input class="form-check-input" type="checkbox" id="setThemeDark">
+                  <label class="form-check-label fw-medium" for="setThemeDark" data-i18n="set_dark_mode">Dark Mode</label>
+                </div>
+
+                <div class="form-check form-switch mb-3">
+                  <input class="form-check-input" type="checkbox" id="setCompactView">
+                  <label class="form-check-label fw-medium" for="setCompactView" data-i18n="set_compact_view">Compact Table View</label>
+                </div>
+
+                <div class="form-check form-switch mb-3">
+                  <input class="form-check-input" type="checkbox" id="setLargeFont">
+                  <label class="form-check-label fw-medium" for="setLargeFont" data-i18n="set_large_font">Large Accessibility Font</label>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <div class="glass-card">
+                <h6 class="fw-bold mb-3" data-i18n="set_language">Language Preference</h6>
+                <div class="mb-3">
+                  <label class="form-label" data-i18n="lbl_select_lang">Active Interface Language</label>
+                  <select class="form-select" id="setLanguageSelect">
+                    <option value="en">English (Default)</option>
+                    <option value="ta">தமிழ் (Tamil)</option>
+                  </select>
+                </div>
+                <hr>
+                <button class="btn btn-outline-danger btn-sm rounded-pill" onclick="App.clearAllLocalStorage()">
+                  <i class="fa-solid fa-trash me-1"></i> Clear Local Storage Cache
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ==================== SECTION: ABOUT & HELP ==================== -->
+        <section class="view-section" id="view-about">
+          <h4 class="fw-bold mb-1">About Bank Directory Search System</h4>
+          <p class="text-muted mb-4">Autonomous, Client-Side Offline Banking Information System</p>
+
+          <div class="row g-3">
+            <!-- DEVELOPER CREDIT & PURPOSE CARD -->
+            <div class="col-12 col-md-7">
+              <div class="glass-card h-100">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                  <div class="sidebar-brand-logo" style="width:52px;height:52px;font-size:1.5rem;background:var(--primary-gradient);">
+                    <i class="fa-solid fa-code"></i>
+                  </div>
+                  <div>
+                    <h5 class="fw-bold mb-0">Developed by VIGNESH R</h5>
+                    <small class="text-muted"><i class="fa-solid fa-phone text-success me-1"></i> Contact: 9360039283</small>
+                  </div>
+                </div>
+                <hr>
+                <h6 class="fw-bold mb-2 text-primary"><i class="fa-solid fa-bullseye me-2"></i>Purpose of this Application</h6>
+                <p class="text-muted small mb-0" style="line-height:1.6;">
+                  This application was developed by VIGNESH R to serve as a comprehensive, real-time Online Bank Directory Search System. It empowers users, financial institutions, businesses, and bank customers to instantaneously search, locate, and verify IFSC codes, MICR codes, branch addresses, and contact details across more than 100,000 bank branches nationwide with live data synchronization, bookmarking, and Google Maps integration.
+                </p>
+              </div>
+            </div>
+
+            <!-- KEYBOARD SHORTCUTS CARD -->
+            <div class="col-12 col-md-5">
+              <div class="glass-card h-100">
+                <h5 class="fw-bold mb-3"><i class="fa-solid fa-keyboard text-primary me-2"></i>Keyboard Shortcuts</h5>
+                <div class="d-flex flex-column gap-2" style="font-size:0.875rem;">
+                  <div class="d-flex justify-content-between">
+                    <span>Quick Global Search</span>
+                    <kbd>Ctrl + K</kbd>
+                  </div>
+                  <div class="d-flex justify-content-between">
+                    <span>Toggle Search Filters</span>
+                    <kbd>Alt + F</kbd>
+                  </div>
+                  <div class="d-flex justify-content-between">
+                    <span>Toggle Light / Dark Theme</span>
+                    <kbd>Alt + T</kbd>
+                  </div>
+                  <div class="d-flex justify-content-between">
+                    <span>Go to Search Directory</span>
+                    <kbd>Alt + S</kbd>
+                  </div>
+                  <div class="d-flex justify-content-between">
+                    <span>View Saved Bookmarks</span>
+                    <kbd>Alt + B</kbd>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+
+  </div>
+
+  <!-- ==================== MODAL: BRANCH QR CODE & DETAILS ==================== -->
+  <div class="modal fade" id="qrCodeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-header-title fw-bold" id="qrModalTitle">Branch Details & QR Code</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body text-center" id="qrModalBody">
+          <!-- Populated via JS -->
+        </div>
+        <div class="modal-footer justify-content-between">
+          <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm" data-bs-dismiss="modal">Close</button>
+          <a id="qrGoogleMapsBtn" target="_blank" class="btn btn-primary rounded-pill btn-sm">
+            <i class="fa-solid fa-map-location-dot me-1"></i> Open Google Maps
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: ADD / EDIT BRANCH ==================== -->
+  <div class="modal fade" id="branchFormModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="fw-bold" id="branchModalTitle">Add New Bank Branch</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="branchForm">
+            <input type="hidden" id="editOriginalIfsc" value="">
+            <div class="row g-3">
+              <div class="col-12 col-md-6">
+                <label class="form-label">Bank Name *</label>
+                <input type="text" class="form-control" id="formBank" required placeholder="State Bank of India">
+              </div>
+              <div class="col-12 col-md-6">
+                <label class="form-label">Branch Name *</label>
+                <input type="text" class="form-control" id="formBranch" required placeholder="Pollachi Main">
+              </div>
+              <div class="col-12 col-md-6">
+                <label class="form-label">IFSC Code *</label>
+                <input type="text" class="form-control" id="formIfsc" required placeholder="SBIN0000899" style="text-transform:uppercase;">
+              </div>
+              <div class="col-12 col-md-6">
+                <label class="form-label">MICR Code</label>
+                <input type="text" class="form-control" id="formMicr" placeholder="642002001">
+              </div>
+              <div class="col-12 col-md-6">
+                <label class="form-label">District *</label>
+                <input type="text" class="form-control" id="formDistrict" required placeholder="Coimbatore">
+              </div>
+              <div class="col-12 col-md-6">
+                <label class="form-label">State *</label>
+                <input type="text" class="form-control" id="formState" required placeholder="Tamil Nadu">
+              </div>
+              <div class="col-12">
+                <label class="form-label">Address *</label>
+                <input type="text" class="form-control" id="formAddress" required placeholder="1 Palakkad Road, Pollachi">
+              </div>
+              <div class="col-12 col-md-4">
+                <label class="form-label">Pincode</label>
+                <input type="text" class="form-control" id="formPincode" placeholder="642001">
+              </div>
+              <div class="col-12 col-md-4">
+                <label class="form-label">Phone</label>
+                <input type="text" class="form-control" id="formPhone" placeholder="04259-223456">
+              </div>
+              <div class="col-12 col-md-4">
+                <label class="form-label">Email</label>
+                <input type="email" class="form-control" id="formEmail" placeholder="pollachi@sbi.co.in">
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary rounded-pill px-4" id="btnSaveBranch">Save Branch</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: SUPER ADMIN LOGIN ==================== -->
+  <div class="modal fade" id="superAdminLoginModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered auth-modal-dialog">
+      <div class="modal-content auth-modal-content">
+        <div class="auth-hero-banner admin-banner">
+          <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3" data-bs-dismiss="modal" aria-label="Close"></button>
+          <div class="auth-logo-badge">
+            <i class="fa-solid fa-user-shield"></i>
+          </div>
+          <h5 class="fw-bold mb-1">Super Admin Authentication</h5>
+          <p class="small text-white-50 mb-0">Authorized Admin Portal (VIKIR0200@GMAIL.COM)</p>
+        </div>
+        <div class="modal-body p-4 pt-3">
+          <div id="adminLoginErrorAlert" class="alert alert-danger py-2 small mb-3" style="display:none;"></div>
+
+          <form id="adminLoginForm" onsubmit="return false;">
+            <div class="mb-3">
+              <label class="form-label small fw-semibold text-muted">Admin Email Address</label>
+              <div class="input-group auth-input-group">
+                <span class="input-group-text"><i class="fa-solid fa-envelope"></i></span>
+                <input type="email" class="form-control py-2" id="adminEmailInput" placeholder="vikir0200@gmail.com" required autocomplete="username">
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-semibold text-muted">Admin Password</label>
+              <div class="input-group auth-input-group">
+                <span class="input-group-text"><i class="fa-solid fa-lock"></i></span>
+                <input type="password" class="form-control py-2" id="adminPasswordInput" placeholder="••••••••" required autocomplete="current-password">
+                <button class="btn btn-toggle-password" type="button" onclick="App.AuthManager.togglePasswordVisibility('adminPasswordInput', this)" title="Toggle password visibility">
+                  <i class="fa-solid fa-eye"></i>
+                </button>
+              </div>
+            </div>
+            <div class="d-grid mt-4">
+              <button type="submit" class="btn auth-btn-primary py-2 fw-bold" id="btnAdminLoginSubmit">
+                <i class="fa-solid fa-key me-2"></i> Authenticate Super Admin
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: USER AUTHENTICATION ==================== -->
+  <div class="modal fade" id="authModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered auth-modal-dialog">
+      <div class="modal-content auth-modal-content">
+        <div class="auth-hero-banner">
+          <div class="auth-logo-badge">
+            <i class="fa-solid fa-building-columns"></i>
+          </div>
+          <h5 class="fw-bold mb-1">Bank Directory Search</h5>
+          <p class="small text-white-50 mb-0">Sign in to search branches, save bookmarks & manage records</p>
+        </div>
+
+        <div class="modal-body p-4">
+          <div id="authErrorAlert" class="alert alert-danger py-2 small mb-3" style="display:none;"></div>
+
+          <ul class="nav nav-pills nav-fill auth-capsule-nav" id="authTab" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="tab-login-btn" data-bs-toggle="pill" data-bs-target="#tab-login" type="button" role="tab"><i class="fa-solid fa-right-to-bracket me-1"></i>Sign In</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="tab-register-btn" data-bs-toggle="pill" data-bs-target="#tab-register" type="button" role="tab"><i class="fa-solid fa-user-plus me-1"></i>Create Account</button>
+            </li>
+          </ul>
+
+          <div class="tab-content" id="authTabContent">
+            <!-- SIGN IN TAB -->
+            <div class="tab-pane fade show active" id="tab-login" role="tabpanel">
+              <form id="userLoginForm" onsubmit="return false;">
+                <div class="mb-3">
+                  <label class="form-label small fw-semibold text-muted">Email Address</label>
+                  <div class="input-group auth-input-group">
+                    <span class="input-group-text"><i class="fa-solid fa-envelope"></i></span>
+                    <input type="email" class="form-control py-2" id="loginEmailInput" placeholder="user@example.com" required>
+                  </div>
+                </div>
+                <div class="mb-3">
+                  <div class="d-flex justify-content-between align-items-center mb-1">
+                    <label class="form-label small fw-semibold text-muted mb-0">Password</label>
+                    <a href="#" class="small text-decoration-none text-primary fw-semibold" onclick="App.AuthManager.openForgotPasswordModal(event)">Forgot Password?</a>
+                  </div>
+                  <div class="input-group auth-input-group">
+                    <span class="input-group-text"><i class="fa-solid fa-lock"></i></span>
+                    <input type="password" class="form-control py-2" id="loginPasswordInput" placeholder="••••••••" required>
+                    <button class="btn btn-toggle-password" type="button" onclick="App.AuthManager.togglePasswordVisibility('loginPasswordInput', this)" title="Toggle password visibility">
+                      <i class="fa-solid fa-eye"></i>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="rememberMeCheck">
+                    <label class="form-check-label small text-muted cursor-pointer" for="rememberMeCheck">Remember email</label>
+                  </div>
+                </div>
+
+                <div class="d-grid mt-4">
+                  <button type="submit" class="btn auth-btn-primary py-2 fw-bold">
+                    <i class="fa-solid fa-right-to-bracket me-2"></i> Sign In to System
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <!-- REGISTER TAB -->
+            <div class="tab-pane fade" id="tab-register" role="tabpanel">
+              <form id="userRegisterForm" onsubmit="return false;">
+                <div class="mb-3">
+                  <label class="form-label small fw-semibold text-muted">Full Name</label>
+                  <div class="input-group auth-input-group">
+                    <span class="input-group-text"><i class="fa-solid fa-user"></i></span>
+                    <input type="text" class="form-control py-2" id="regNameInput" placeholder="Vignesh R" required>
+                  </div>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label small fw-semibold text-muted">Email Address</label>
+                  <div class="input-group auth-input-group">
+                    <span class="input-group-text"><i class="fa-solid fa-envelope"></i></span>
+                    <input type="email" class="form-control py-2" id="regEmailInput" placeholder="vignesh@example.com" required>
+                  </div>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label small fw-semibold text-muted">Phone Number</label>
+                  <div class="input-group auth-input-group">
+                    <span class="input-group-text"><i class="fa-solid fa-phone"></i></span>
+                    <input type="tel" class="form-control py-2" id="regPhoneInput" placeholder="9360039283" required>
+                  </div>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label small fw-semibold text-muted">Password</label>
+                  <div class="input-group auth-input-group">
+                    <span class="input-group-text"><i class="fa-solid fa-lock"></i></span>
+                    <input type="password" class="form-control py-2" id="regPasswordInput" placeholder="••••••••" required minlength="6">
+                    <button class="btn btn-toggle-password" type="button" onclick="App.AuthManager.togglePasswordVisibility('regPasswordInput', this)" title="Toggle password visibility">
+                      <i class="fa-solid fa-eye"></i>
+                    </button>
+                  </div>
+                  <div class="progress mt-2" style="height: 5px;">
+                    <div id="passwordStrengthBar" class="progress-bar bg-danger" role="progressbar" style="width: 0%; transition: width 0.3s ease;"></div>
+                  </div>
+                  <div class="d-flex justify-content-between align-items-center mt-1">
+                    <small id="passwordStrengthText" class="text-muted" style="font-size: 0.75rem;">Password Strength: None</small>
+                    <small class="text-muted" style="font-size: 0.7rem;">Min. 6 chars</small>
+                  </div>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label small fw-semibold text-muted">Confirm Password</label>
+                  <div class="input-group auth-input-group">
+                    <span class="input-group-text"><i class="fa-solid fa-shield-halved"></i></span>
+                    <input type="password" class="form-control py-2" id="regConfirmPasswordInput" placeholder="••••••••" required minlength="6">
+                    <button class="btn btn-toggle-password" type="button" onclick="App.AuthManager.togglePasswordVisibility('regConfirmPasswordInput', this)" title="Toggle password visibility">
+                      <i class="fa-solid fa-eye"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="d-grid mt-4">
+                  <button type="submit" class="btn auth-btn-success py-2 fw-bold">
+                    <i class="fa-solid fa-user-plus me-2"></i> Create Free Account
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: FORGOT PASSWORD ==================== -->
+  <div class="modal fade" id="forgotPasswordModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered auth-modal-dialog">
+      <div class="modal-content auth-modal-content">
+        <div class="auth-hero-banner reset-banner">
+          <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3" data-bs-dismiss="modal" aria-label="Close"></button>
+          <div class="auth-logo-badge">
+            <i class="fa-solid fa-key"></i>
+          </div>
+          <h5 class="fw-bold mb-1">Reset Account Password</h5>
+          <p class="small text-white-50 mb-0">Recover access to your bank directory account</p>
+        </div>
+
+        <div class="modal-body p-4">
+          <div id="forgotPasswordErrorAlert" class="alert alert-danger py-2 small mb-3" style="display:none;"></div>
+          <div id="forgotPasswordSuccessAlert" class="alert alert-success py-2 small mb-3" style="display:none;"></div>
+
+          <form id="forgotPasswordForm" onsubmit="App.AuthManager.sendFirebasePasswordResetEmail(document.getElementById('resetEmailInput').value); return false;">
+            <div class="mb-3">
+              <label class="form-label small fw-semibold text-muted">Registered Email Address</label>
+              <div class="input-group auth-input-group mb-3">
+                <span class="input-group-text"><i class="fa-solid fa-envelope"></i></span>
+                <input type="email" class="form-control py-2" id="resetEmailInput" placeholder="user@example.com" required>
+              </div>
+            </div>
+
+            <div class="d-grid mt-4">
+              <button type="submit" class="btn auth-btn-warning py-2 fw-bold">
+                <i class="fa-solid fa-paper-plane me-2"></i> Send Password Reset Link to Gmail
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST CONTAINER -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- ==================== SCRIPTS ==================== -->
+  <!-- jQuery (Required by DataTables) -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+  <!-- Bootstrap 5 JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- DataTables JS & Extensions -->
+  <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+  <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+  <script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
+  <script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+  <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.bootstrap5.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+  <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
+  <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js"></script>
+
+  <!-- SheetJS (Excel Parser/Exporter) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <!-- jsPDF & AutoTable -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js"></script>
+
+  <!-- Firebase Realtime Database & Auth SDK (v10 Compat) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
+  <!-- Application Logic -->
+  <script src="script.js"></script>
+</body>
+</html>
