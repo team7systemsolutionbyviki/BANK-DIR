@@ -123,26 +123,54 @@
 
   // --- EMBEDDED SEED DATASET (Fallback if fetch fails offline) ---
   const SEED_BANKS = [
-    { bank: "State Bank of India", branch: "Pollachi", ifsc: "SBIN0000899", micr: "642002001", district: "Coimbatore", address: "1 Palakkad Road, Pollachi", state: "Tamil Nadu", pincode: "642001", phone: "04259-223456", email: "pollachi@sbi.co.in" },
+    { bank: "State Bank of India", branch: "Pollachi Main", ifsc: "SBIN0000899", micr: "642002001", district: "Coimbatore", address: "1 Palakkad Road, Pollachi", state: "Tamil Nadu", pincode: "642001", phone: "04259-223456", email: "pollachi@sbi.co.in" },
     { bank: "State Bank of India", branch: "Coimbatore Main", ifsc: "SBIN0000825", micr: "641002002", district: "Coimbatore", address: "State Bank Road, Post Box No. 1, Coimbatore", state: "Tamil Nadu", pincode: "641018", phone: "0422-2300561", email: "coimbatore.main@sbi.co.in" },
+    { bank: "State Bank of India", branch: "Chennai Main", ifsc: "SBIN0000800", micr: "600002001", district: "Chennai", address: "22 Rajaji Salai, George Town, Chennai", state: "Tamil Nadu", pincode: "600001", phone: "044-25341200", email: "chennaimain@sbi.co.in" },
+    { bank: "State Bank of India", branch: "Madurai Main", ifsc: "SBIN0000874", micr: "625002002", district: "Madurai", address: "West Veli Street, Madurai", state: "Tamil Nadu", pincode: "625001", phone: "0452-2341234", email: "maduraimain@sbi.co.in" },
+    { bank: "State Bank of India", branch: "Mumbai Main Branch", ifsc: "SBIN0000300", micr: "400002001", district: "Mumbai", address: "Horniman Circle, Fort, Mumbai", state: "Maharashtra", pincode: "400001", phone: "022-22661234", email: "mumbaimain@sbi.co.in" },
     { bank: "HDFC Bank", branch: "RS Puram Coimbatore", ifsc: "HDFC0000030", micr: "641240002", district: "Coimbatore", address: "No 165 166, DB Road, RS Puram, Coimbatore", state: "Tamil Nadu", pincode: "641002", phone: "0422-6160616", email: "rspuram.cbe@hdfcbank.com" },
+    { bank: "HDFC Bank", branch: "Anna Nagar Chennai", ifsc: "HDFC0000017", micr: "600240003", district: "Chennai", address: "Second Avenue, Anna Nagar, Chennai", state: "Tamil Nadu", pincode: "600040", phone: "044-6160616", email: "annanagar@hdfcbank.com" },
+    { bank: "HDFC Bank", branch: "Bandra West Mumbai", ifsc: "HDFC0000001", micr: "400240002", district: "Mumbai", address: "Linking Road, Bandra West, Mumbai", state: "Maharashtra", pincode: "400050", phone: "022-6160616", email: "bandra@hdfcbank.com" },
     { bank: "ICICI Bank", branch: "Trichy Road Coimbatore", ifsc: "ICIC0000016", micr: "641229002", district: "Coimbatore", address: "Cheran Plaza, Trichy Road, Coimbatore", state: "Tamil Nadu", pincode: "641018", phone: "0422-4351100", email: "trichyroad@icicibank.com" },
+    { bank: "ICICI Bank", branch: "Cenotaph Road Chennai", ifsc: "ICIC0000001", micr: "600229001", district: "Chennai", address: "1 Cenotaph Road, Teynampet, Chennai", state: "Tamil Nadu", pincode: "600018", phone: "044-4351100", email: "cenotaph@icicibank.com" },
     { bank: "Axis Bank", branch: "Gandhipuram Coimbatore", ifsc: "UTIB0000040", micr: "641211002", district: "Coimbatore", address: "764 Cross Cut Road, Gandhipuram, Coimbatore", state: "Tamil Nadu", pincode: "641012", phone: "0422-2490050", email: "gandhipuram@axisbank.com" },
+    { bank: "Axis Bank", branch: "Mylapore Chennai", ifsc: "UTIB0000005", micr: "600211002", district: "Chennai", address: "Royapettah High Road, Mylapore, Chennai", state: "Tamil Nadu", pincode: "600004", phone: "044-2490050", email: "mylapore@axisbank.com" },
     { bank: "Punjab National Bank", branch: "Anna Salai Chennai", ifsc: "PUNB0000100", micr: "600024002", district: "Chennai", address: "769 Anna Salai, Thousand Lights, Chennai", state: "Tamil Nadu", pincode: "600002", phone: "044-28520341", email: "annasalai@pnb.co.in" },
-    { bank: "State Bank of India", branch: "Chennai Main Branch", ifsc: "SBIN0000800", micr: "600002001", district: "Chennai", address: "22 Rajaji Salai, George Town, Chennai", state: "Tamil Nadu", pincode: "600001", phone: "044-25341200", email: "chennaimain@sbi.co.in" },
+    { bank: "Punjab National Bank", branch: "Oppanakara Coimbatore", ifsc: "PUNB0000200", micr: "641024002", district: "Coimbatore", address: "Oppanakara Street, Town Hall, Coimbatore", state: "Tamil Nadu", pincode: "641001", phone: "0422-2391234", email: "oppanakara@pnb.co.in" },
     { bank: "Canara Bank", branch: "T Nagar Chennai", ifsc: "CNRB0000910", micr: "600015010", district: "Chennai", address: "Usman Road, T Nagar, Chennai", state: "Tamil Nadu", pincode: "600017", phone: "044-24345511", email: "tnagar.chennai@canarabank.com" },
-    { bank: "Bank of Baroda", branch: "Madurai Main", ifsc: "BARB0MADURA", micr: "625012002", district: "Madurai", address: "East Veli Street, Madurai", state: "Tamil Nadu", pincode: "625001", phone: "0452-2334411", email: "madura@bankofbaroda.com" },
-    { bank: "Union Bank of India", branch: "KK Nagar Madurai", ifsc: "UBIN0533211", micr: "625026003", district: "Madurai", address: "80 Feet Road, KK Nagar, Madurai", state: "Tamil Nadu", pincode: "625020", phone: "0452-2580022", email: "kknagar.madurai@unionbankofindia.bank" },
-    { bank: "State Bank of India", branch: "Nariman Point Mumbai", ifsc: "SBIN0000691", micr: "400002005", district: "Mumbai City", address: "State Bank Bhavan, Madame Cama Road, Nariman Point, Mumbai", state: "Maharashtra", pincode: "400021", phone: "022-22740000", email: "narimanpoint@sbi.co.in" },
-    { bank: "HDFC Bank", branch: "Fort Mumbai", ifsc: "HDFC0000060", micr: "400240001", district: "Mumbai City", address: "Maneckji Wadia Building, Nanik Motwane Marg, Fort, Mumbai", state: "Maharashtra", pincode: "400001", phone: "022-66521000", email: "fort.mumbai@hdfcbank.com" },
-    { bank: "ICICI Bank", branch: "Bandra Kurla Complex", ifsc: "ICIC0000004", micr: "400229015", district: "Mumbai Suburban", address: "ICICI Bank Towers, Bandra Kurla Complex, Mumbai", state: "Maharashtra", pincode: "400051", phone: "022-33667777", email: "bkc@icicibank.com" },
-    { bank: "Axis Bank", branch: "JM Road Pune", ifsc: "UTIB0000037", micr: "411211002", district: "Pune", address: "Shangrila Complex, Jangali Maharaj Road, Shivajinagar, Pune", state: "Maharashtra", pincode: "411005", phone: "020-25538801", email: "jmroad.pune@axisbank.com" },
-    { bank: "State Bank of India", branch: "MG Road Bengaluru", ifsc: "SBIN0000813", micr: "560002002", district: "Bengaluru Urban", address: "65 St Marks Road, MG Road Area, Bengaluru", state: "Karnataka", pincode: "560001", phone: "080-25943000", email: "mgroad.bengaluru@sbi.co.in" },
-    { bank: "Kotak Mahindra Bank", branch: "Koramangala Bengaluru", ifsc: "KKBK0000424", micr: "560485006", district: "Bengaluru Urban", address: "80 Feet Road, 4th Block, Koramangala, Bengaluru", state: "Karnataka", pincode: "560034", phone: "080-41123344", email: "koramangala@kotak.com" },
-    { bank: "State Bank of India", branch: "Connaught Place New Delhi", ifsc: "SBIN0000692", micr: "110002001", district: "Central Delhi", address: "11 Parliament Street, Connaught Place, New Delhi", state: "Delhi", pincode: "110001", phone: "011-23374000", email: "cp.delhi@sbi.co.in" },
-    { bank: "HDFC Bank", branch: "Banjara Hills Hyderabad", ifsc: "HDFC0000021", micr: "500240002", district: "Hyderabad", address: "Road No 1, Banjara Hills, Hyderabad", state: "Telangana", pincode: "500034", phone: "040-66001234", email: "banjarahills@hdfcbank.com" },
-    { bank: "State Bank of India", branch: "MG Road Kochi", ifsc: "SBIN0000860", micr: "682002002", district: "Ernakulam", address: "Shanmugham Road, Ernakulam, Kochi", state: "Kerala", pincode: "682031", phone: "0484-2351234", email: "kochi.main@sbi.co.in" },
-    { bank: "State Bank of India", branch: "Park Street Kolkata", ifsc: "SBIN0000001", micr: "700002001", district: "Kolkata", address: "Samriddhi Bhavan, 1 Strand Road, Kolkata", state: "West Bengal", pincode: "700001", phone: "033-22486180", email: "kolkata.main@sbi.co.in" }
+    { bank: "Canara Bank", branch: "Town Hall Coimbatore", ifsc: "CNRB0000850", micr: "641015002", district: "Coimbatore", address: "Oppanakara Street, Coimbatore", state: "Tamil Nadu", pincode: "641001", phone: "0422-2301234", email: "townhall.cbe@canarabank.com" },
+    { bank: "Bank of Baroda", branch: "Madurai Main", ifsc: "BARB0MADURA", micr: "625012002", district: "Madurai", address: "West Tower Street, Madurai", state: "Tamil Nadu", pincode: "625001", phone: "0452-2345678", email: "madurai@bankofbaroda.com" },
+    { bank: "Bank of Baroda", branch: "Coimbatore Main", ifsc: "BARB0COIMBA", micr: "641012001", district: "Coimbatore", address: "Bank Road, Coimbatore", state: "Tamil Nadu", pincode: "641018", phone: "0422-2300123", email: "coimbatore@bankofbaroda.com" },
+    { bank: "Union Bank of India", branch: "Salem Main", ifsc: "UBIN0533351", micr: "636026002", district: "Salem", address: "First Agraharam, Salem", state: "Tamil Nadu", pincode: "636001", phone: "0427-2260123", email: "salem@unionbankofindia.com" },
+    { bank: "Union Bank of India", branch: "Coimbatore Main", ifsc: "UBIN0533301", micr: "641026001", district: "Coimbatore", address: "Oppanakara Street, Coimbatore", state: "Tamil Nadu", pincode: "641001", phone: "0422-2301122", email: "cbe@unionbankofindia.com" },
+    { bank: "Bank of India", branch: "Chennai Main", ifsc: "BKID0008000", micr: "600013001", district: "Chennai", address: "Erabalu Chetty Street, Parry Corner, Chennai", state: "Tamil Nadu", pincode: "600001", phone: "044-25340123", email: "chennai.main@bankofindia.co.in" },
+    { bank: "Central Bank of India", branch: "Coimbatore Main", ifsc: "CBIN0280001", micr: "641016001", district: "Coimbatore", address: "Raja Street, Coimbatore", state: "Tamil Nadu", pincode: "641001", phone: "0422-2390123", email: "coimbatore@centralbank.co.in" },
+    { bank: "Indian Bank", branch: "Harbour Chennai", ifsc: "IDIB000H001", micr: "600019002", district: "Chennai", address: "Rajaji Salai, Chennai", state: "Tamil Nadu", pincode: "600001", phone: "044-25220123", email: "harbour@indianbank.co.in" },
+    { bank: "Indian Bank", branch: "Coimbatore Main", ifsc: "IDIB000C002", micr: "641019001", district: "Coimbatore", address: "DB Road, RS Puram, Coimbatore", state: "Tamil Nadu", pincode: "641002", phone: "0422-2540123", email: "coimbatore@indianbank.co.in" },
+    { bank: "Indian Overseas Bank", branch: "Cathedral Chennai", ifsc: "IOBA0000001", micr: "600020002", district: "Chennai", address: "762 Anna Salai, Cathedral Road, Chennai", state: "Tamil Nadu", pincode: "600002", phone: "044-28521100", email: "cathedral@iob.in" },
+    { bank: "Indian Overseas Bank", branch: "Pollachi Main", ifsc: "IOBA0000085", micr: "642020001", district: "Coimbatore", address: "Palakkad Road, Pollachi", state: "Tamil Nadu", pincode: "642001", phone: "04259-224466", email: "pollachi@iob.in" },
+    { bank: "UCO Bank", branch: "Chennai Main", ifsc: "UCBA0000005", micr: "600028001", district: "Chennai", address: "Thambu Chetty Street, Chennai", state: "Tamil Nadu", pincode: "600001", phone: "044-25340055", email: "chennai@ucobank.co.in" },
+    { bank: "Bank of Maharashtra", branch: "Chennai Main", ifsc: "MAHB0000003", micr: "600014001", district: "Chennai", address: "Mount Road, Chennai", state: "Tamil Nadu", pincode: "600002", phone: "044-28522334", email: "chennai@mahabank.co.in" },
+    { bank: "Kotak Mahindra Bank", branch: "RS Puram Coimbatore", ifsc: "KKBK0000491", micr: "641485002", district: "Coimbatore", address: "DB Road, RS Puram, Coimbatore", state: "Tamil Nadu", pincode: "641002", phone: "0422-4567890", email: "rspuram@kotak.com" },
+    { bank: "Kotak Mahindra Bank", branch: "MG Road Bengaluru", ifsc: "KKBK0000461", micr: "560485002", district: "Bengaluru Urban", address: "MG Road, Bengaluru", state: "Karnataka", pincode: "560001", phone: "080-45678900", email: "mgroad@kotak.com" },
+    { bank: "IndusInd Bank", branch: "Race Course Coimbatore", ifsc: "INDB0000033", micr: "641234002", district: "Coimbatore", address: "Race Course Road, Coimbatore", state: "Tamil Nadu", pincode: "641018", phone: "0422-4441122", email: "racecourse@indusind.com" },
+    { bank: "Federal Bank", branch: "Oppanakara Coimbatore", ifsc: "FDRL0001234", micr: "641049002", district: "Coimbatore", address: "Oppanakara Street, Coimbatore", state: "Tamil Nadu", pincode: "641001", phone: "0422-2304567", email: "cbe@federalbank.co.in" },
+    { bank: "IDFC FIRST Bank", branch: "Avinashi Road Coimbatore", ifsc: "IDFB0040001", micr: "641740001", district: "Coimbatore", address: "Avinashi Road, Coimbatore", state: "Tamil Nadu", pincode: "641018", phone: "0422-6789012", email: "cbe@idfcfirstbank.com" },
+    { bank: "Yes Bank", branch: "Avinashi Road Coimbatore", ifsc: "YESB0000045", micr: "641539002", district: "Coimbatore", address: "Tristar Towers, Avinashi Road, Coimbatore", state: "Tamil Nadu", pincode: "641018", phone: "0422-4300937", email: "cbe@yesbank.in" },
+    { bank: "South Indian Bank", branch: "Pollachi", ifsc: "SIBL0000125", micr: "642059002", district: "Coimbatore", address: "New Scheme Road, Pollachi", state: "Tamil Nadu", pincode: "642001", phone: "04259-223344", email: "pollachi@sib.co.in" },
+    { bank: "Karur Vysya Bank", branch: "Karur Main", ifsc: "KVBL0001101", micr: "639053002", district: "Karur", address: "Jawahar Bazaar, Karur", state: "Tamil Nadu", pincode: "639001", phone: "04324-260123", email: "karurmain@kvbmail.com" },
+    { bank: "Karur Vysya Bank", branch: "Pollachi", ifsc: "KVBL0001150", micr: "642053001", district: "Coimbatore", address: "SS Kovil Street, Pollachi", state: "Tamil Nadu", pincode: "642001", phone: "04259-225577", email: "pollachi@kvbmail.com" },
+    { bank: "City Union Bank", branch: "Kumbakonam Main", ifsc: "CIUB0000001", micr: "612054002", district: "Thanjavur", address: "TSR Big Street, Kumbakonam", state: "Tamil Nadu", pincode: "612001", phone: "0435-2432324", email: "cub@cityunionbank.com" },
+    { bank: "Tamilnad Mercantile Bank", branch: "Tuticorin Main", ifsc: "TMBL0000001", micr: "628060002", district: "Thoothukudi", address: "Beach Road, Tuticorin", state: "Tamil Nadu", pincode: "628001", phone: "0461-2321234", email: "tuticorin@tmbank.in" },
+    { bank: "Bandhan Bank", branch: "Kolkata Main", ifsc: "BDBL0001000", micr: "700750002", district: "Kolkata", address: "DN 32, Sector V, Salt Lake, Kolkata", state: "West Bengal", pincode: "700091", phone: "033-66090909", email: "kolkata@bandhanbank.com" },
+    { bank: "AU Small Finance Bank", branch: "Jaipur Main", ifsc: "AUBL0002001", micr: "302765002", district: "Jaipur", address: "Bank House, Tonk Road, Jaipur", state: "Rajasthan", pincode: "302015", phone: "0141-6660000", email: "jaipur@aubank.in" },
+    { bank: "Equitas Small Finance Bank", branch: "Chennai Main", ifsc: "ESFB0001001", micr: "600756002", district: "Chennai", address: "Phase II, Spencer Plaza, Anna Salai, Chennai", state: "Tamil Nadu", pincode: "600002", phone: "044-30898000", email: "chennai@equitasbank.com" },
+    { bank: "Ujjivan Small Finance Bank", branch: "Bengaluru Main", ifsc: "UJVN0001001", micr: "560760002", district: "Bengaluru Urban", address: "Grape Garden, Koramangala, Bengaluru", state: "Karnataka", pincode: "560095", phone: "080-40712121", email: "bengaluru@ujjivan.com" },
+    { bank: "Paytm Payments Bank", branch: "Noida Main", ifsc: "PYTM0123456", micr: "110999001", district: "Gautam Buddha Nagar", address: "B-121, Sector 5, Noida", state: "Uttar Pradesh", pincode: "201301", phone: "0120-4456789", email: "care@paytmbank.com" },
+    { bank: "India Post Payments Bank", branch: "New Delhi GPO", ifsc: "IPPB0000001", micr: "110001001", district: "Central Delhi", address: "GPO Building, Connaught Place, New Delhi", state: "Delhi", pincode: "110001", phone: "011-23360001", email: "contact@ippbonline.in" },
+    { bank: "Reserve Bank of India", branch: "Mumbai Apex", ifsc: "RBIS0GOINBB", micr: "400001001", district: "Mumbai", address: "Shahid Bhagat Singh Road, Fort, Mumbai", state: "Maharashtra", pincode: "400001", phone: "022-22660500", email: "help@rbi.org.in" },
+    { bank: "HSBC Bank", branch: "MG Road Mumbai", ifsc: "HSBC0400002", micr: "400034002", district: "Mumbai", address: "52/60 MG Road, Fort, Mumbai", state: "Maharashtra", pincode: "400001", phone: "022-22674921", email: "india@hsbc.co.in" },
+    { bank: "Standard Chartered Bank", branch: "Rajaji Salai Chennai", ifsc: "SCBL0036001", micr: "600036002", district: "Chennai", address: "19 Rajaji Salai, Chennai", state: "Tamil Nadu", pincode: "600001", phone: "044-25341234", email: "chennai@sc.com" }
   ];
 
   // --- APPLICATION STATE ---
@@ -212,12 +240,23 @@
     const ref = firebaseDb.ref('banks');
     ref.on('value', snapshot => {
       const cloudData = snapshot.val();
+      const deletedIfscs = new Set(JSON.parse(localStorage.getItem('bank_deleted_ifscs') || '[]'));
       if (cloudData) {
         const cloudArray = Object.values(cloudData);
         if (cloudArray.length > 0) {
           const ifscMap = new Map();
-          AppState.allData.forEach(item => ifscMap.set(item.ifsc, item));
-          cloudArray.forEach(item => ifscMap.set(item.ifsc, item));
+          AppState.allData.forEach(item => {
+            if (item.ifsc && !deletedIfscs.has(item.ifsc)) {
+              ifscMap.set(item.ifsc, item);
+            }
+          });
+          cloudArray.forEach(item => {
+            if (item.ifsc && !deletedIfscs.has(item.ifsc)) {
+              ifscMap.set(item.ifsc, normalizeBranch(item));
+            } else if (item.ifsc && deletedIfscs.has(item.ifsc)) {
+              deleteBranchFromFirebase(item.ifsc);
+            }
+          });
 
           AppState.allData = Array.from(ifscMap.values());
           AppState.filteredData = [...AppState.allData];
@@ -228,9 +267,9 @@
           updateDashboardStats();
         }
       } else {
-        // Firebase Cloud DB is empty -> Auto-seed online cloud database
+        // Firebase Cloud DB is empty -> Auto-seed online cloud database with full dataset
         console.log("Seeding empty Firebase cloud database...");
-        SEED_BANKS.forEach(b => syncBranchToFirebase(b));
+        AppState.allData.forEach(b => syncBranchToFirebase(b));
       }
     });
   }
@@ -354,8 +393,17 @@
 
     // Merge custom added branches from localStorage
     const localBranches = JSON.parse(localStorage.getItem('bank_custom_branches') || '[]');
-    // Normalize every row to ensure all fields exist
-    AppState.allData = [...data, ...localBranches].map(normalizeBranch);
+    const deletedIfscs = new Set(JSON.parse(localStorage.getItem('bank_deleted_ifscs') || '[]'));
+    const rawAll = [...data, ...localBranches].map(normalizeBranch);
+    
+    // De-duplicate by IFSC and exclude deleted branches
+    const map = new Map();
+    rawAll.forEach(b => {
+      if (b.ifsc && !deletedIfscs.has(b.ifsc)) {
+        map.set(b.ifsc, b);
+      }
+    });
+    AppState.allData = Array.from(map.values());
     AppState.filteredData = [...AppState.allData];
   }
 
@@ -1450,19 +1498,41 @@
         return;
       }
 
+      // If IFSC changed during edit, clean up old IFSC
+      if (origIfsc && origIfsc !== newBranch.ifsc) {
+        AppState.allData = AppState.allData.filter(i => i.ifsc !== origIfsc);
+        deleteBranchFromFirebase(origIfsc);
+        if (AppState.favorites.has(origIfsc)) {
+          AppState.favorites.delete(origIfsc);
+          localStorage.setItem('bank_favorites', JSON.stringify(Array.from(AppState.favorites)));
+        }
+      }
+
+      // Remove from deleted tracking set if re-added
+      const deletedIfscs = JSON.parse(localStorage.getItem('bank_deleted_ifscs') || '[]');
+      const updatedDeleted = deletedIfscs.filter(code => code !== newBranch.ifsc && code !== origIfsc);
+      localStorage.setItem('bank_deleted_ifscs', JSON.stringify(updatedDeleted));
+
       if (origIfsc) {
         // Edit existing
-        const idx = AppState.allData.findIndex(i => i.ifsc === origIfsc);
-        if (idx !== -1) AppState.allData[idx] = newBranch;
+        const idx = AppState.allData.findIndex(i => i.ifsc === origIfsc || i.ifsc === newBranch.ifsc);
+        if (idx !== -1) {
+          AppState.allData[idx] = newBranch;
+        } else {
+          AppState.allData.unshift(newBranch);
+        }
       } else {
         // Add new
+        AppState.allData = AppState.allData.filter(i => i.ifsc !== newBranch.ifsc);
         AppState.allData.unshift(newBranch);
       }
 
-      // Save custom additions to localStorage and sync to Firebase Cloud
-      const localCustom = JSON.parse(localStorage.getItem('bank_custom_branches') || '[]');
+      // Save custom additions to localStorage (de-duplicated) and sync to Firebase Cloud
+      let localCustom = JSON.parse(localStorage.getItem('bank_custom_branches') || '[]');
+      localCustom = localCustom.filter(b => b.ifsc !== origIfsc && b.ifsc !== newBranch.ifsc);
       localCustom.push(newBranch);
       localStorage.setItem('bank_custom_branches', JSON.stringify(localCustom));
+
       syncBranchToFirebase(newBranch);
 
       AppState.filteredData = [...AppState.allData];
@@ -1472,7 +1542,7 @@
 
       const modalEl = document.getElementById('branchFormModal');
       const modal = bootstrap.Modal.getInstance(modalEl);
-      modal.hide();
+      if (modal) modal.hide();
 
       showToast(origIfsc ? 'Branch details updated & cloud synced!' : 'New branch added & cloud synced!');
     },
@@ -1491,6 +1561,18 @@
 
       AppState.allData = AppState.allData.filter(i => i.ifsc !== ifsc);
       deleteBranchFromFirebase(ifsc);
+
+      // Clean from localStorage custom branches
+      let localCustom = JSON.parse(localStorage.getItem('bank_custom_branches') || '[]');
+      localCustom = localCustom.filter(b => b.ifsc !== ifsc);
+      localStorage.setItem('bank_custom_branches', JSON.stringify(localCustom));
+
+      // Record in deleted IFSCs tracking set
+      let deletedIfscs = JSON.parse(localStorage.getItem('bank_deleted_ifscs') || '[]');
+      if (!deletedIfscs.includes(ifsc)) {
+        deletedIfscs.push(ifsc);
+        localStorage.setItem('bank_deleted_ifscs', JSON.stringify(deletedIfscs));
+      }
 
       if (AppState.favorites.has(ifsc)) {
         AppState.favorites.delete(ifsc);
