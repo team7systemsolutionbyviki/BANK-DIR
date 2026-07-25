@@ -238,7 +238,6 @@ html, body {
   color: var(--text-main);
   min-height: 100vh;
   overflow-x: hidden;
-  overscroll-behavior-y: contain;
 }
 
 a {
@@ -252,7 +251,6 @@ a {
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  overscroll-behavior-y: contain;
 }
 
 /* --- SIDEBAR --- */
@@ -390,7 +388,6 @@ a {
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
-  overscroll-behavior-y: contain;
 }
 
 /* --- TOPBAR --- */
@@ -503,7 +500,6 @@ a {
   flex-grow: 1;
   padding: 1.5rem;
   overflow-y: auto;
-  overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
   scroll-behavior: smooth;
 }
@@ -778,14 +774,43 @@ table.dataTable tbody tr:hover td {
   box-shadow: var(--shadow-sm);
 }
 
-/* --- RESPONSIVE ADJUSTMENTS --- */
+/* --- RESPONSIVE ADJUSTMENTS & MOBILE SCROLLING FIX --- */
 @media (max-width: 991.88px) {
+  html, body {
+    height: auto !important;
+    min-height: 100% !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .app-container {
+    height: auto !important;
+    min-height: 100vh !important;
+    overflow: visible !important;
+    flex-direction: column !important;
+  }
+
+  .main-wrapper {
+    height: auto !important;
+    min-height: 100vh !important;
+    overflow: visible !important;
+  }
+
+  .content-body {
+    height: auto !important;
+    overflow-y: visible !important;
+    padding: 1rem !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
   .sidebar {
     position: fixed;
     top: 0;
     left: 0;
     height: 100vh;
     transform: translateX(-100%);
+    z-index: 1050;
   }
 
   .sidebar.mobile-open {
@@ -807,7 +832,7 @@ table.dataTable tbody tr:hover td {
   }
 
   .content-body {
-    padding: 0.85rem;
+    padding: 0.75rem !important;
   }
 }
 
