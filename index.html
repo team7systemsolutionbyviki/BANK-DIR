@@ -710,6 +710,19 @@
                       <label class="form-label fw-semibold">Additional Notes</label>
                       <textarea class="form-control" id="rptNotes" rows="2" placeholder="Any additional information about this branch..."></textarea>
                     </div>
+                    <div class="col-12">
+                      <label class="form-label fw-semibold"><i class="fa-solid fa-camera text-primary me-1"></i>Upload Bank Photo / Branch Image (Encoded & Saved to Firebase)</label>
+                      <input type="file" class="form-control" id="rptImageInput" accept="image/*" onchange="App.handleBranchImageUpload(event, 'rptImagePreview', 'rptImageBase64')">
+                      <input type="hidden" id="rptImageBase64" value="">
+                      <div id="rptImagePreview" class="mt-2 text-center" style="display:none;">
+                        <div class="position-relative d-inline-block">
+                          <img id="rptImagePreviewImg" src="" alt="Branch Image Preview" class="img-fluid rounded-3 border shadow-sm" style="max-height: 140px; object-fit: cover;">
+                          <button type="button" class="btn btn-sm btn-danger rounded-circle position-absolute top-0 end-0 m-1" onclick="App.removeBranchImage('rptImagePreview', 'rptImageBase64', 'rptImageInput')" title="Remove Image">
+                            <i class="fa-solid fa-xmark"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                     <div class="col-12 d-flex gap-2 pt-2">
                       <button type="submit" class="btn btn-primary rounded-pill px-4 fw-semibold" onclick="App.submitMissingBranch()">
                         <i class="fa-solid fa-paper-plane me-2"></i>Submit Report
@@ -934,6 +947,19 @@
               <div class="col-12 col-md-4">
                 <label class="form-label">Email</label>
                 <input type="email" class="form-control" id="formEmail" placeholder="pollachi@sbi.co.in">
+              </div>
+              <div class="col-12">
+                <label class="form-label fw-semibold"><i class="fa-solid fa-camera text-primary me-1"></i>Upload Bank / Branch Image (Encoded & Saved to Firebase)</label>
+                <input type="file" class="form-control" id="formImageInput" accept="image/*" onchange="App.handleBranchImageUpload(event, 'formImagePreview', 'formImageBase64')">
+                <input type="hidden" id="formImageBase64" value="">
+                <div id="formImagePreview" class="mt-2 text-center" style="display:none;">
+                  <div class="position-relative d-inline-block">
+                    <img id="formImagePreviewImg" src="" alt="Branch Image Preview" class="img-fluid rounded-3 border shadow-sm" style="max-height: 140px; object-fit: cover;">
+                    <button type="button" class="btn btn-sm btn-danger rounded-circle position-absolute top-0 end-0 m-1" onclick="App.removeBranchImage('formImagePreview', 'formImageBase64', 'formImageInput')" title="Remove Image">
+                      <i class="fa-solid fa-xmark"></i>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </form>

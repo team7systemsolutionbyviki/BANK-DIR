@@ -451,7 +451,8 @@
       address:  row.address  || '',
       pincode:  row.pincode  || '',
       phone:    row.phone    || '',
-      email:    row.email    || ''
+      email:    row.email    || '',
+      image:    row.image    || ''
     };
   }
 
@@ -2012,6 +2013,8 @@
       }
       document.getElementById('branchForm').reset();
       document.getElementById('editOriginalIfsc').value = '';
+      if (document.getElementById('formImageBase64')) document.getElementById('formImageBase64').value = '';
+      if (document.getElementById('formImagePreview')) document.getElementById('formImagePreview').style.display = 'none';
       document.getElementById('branchModalTitle').textContent = 'Add New Bank Branch';
       const modal = new bootstrap.Modal(document.getElementById('branchFormModal'));
       modal.show();
@@ -2036,6 +2039,18 @@
       document.getElementById('formPhone').value = branch.phone || '';
       document.getElementById('formEmail').value = branch.email || '';
 
+      const imgBase64 = branch.image || '';
+      const hiddenInput = document.getElementById('formImageBase64');
+      const previewBox = document.getElementById('formImagePreview');
+      const previewImg = document.getElementById('formImagePreviewImg');
+      if (hiddenInput) hiddenInput.value = imgBase64;
+      if (imgBase64 && previewBox && previewImg) {
+        previewImg.src = imgBase64;
+        previewBox.style.display = 'block';
+      } else if (previewBox) {
+        previewBox.style.display = 'none';
+      }
+
       document.getElementById('branchModalTitle').textContent = 'Edit Bank Branch';
       const modal = new bootstrap.Modal(document.getElementById('branchFormModal'));
       modal.show();
@@ -2056,7 +2071,8 @@
         address: document.getElementById('formAddress').value.trim(),
         pincode: document.getElementById('formPincode').value.trim(),
         phone: document.getElementById('formPhone').value.trim(),
-        email: document.getElementById('formEmail').value.trim()
+        email: document.getElementById('formEmail').value.trim(),
+        image: (document.getElementById('formImageBase64')?.value || '').trim()
       };
 
       if (!newBranch.bank || !newBranch.branch || !newBranch.ifsc || !newBranch.district || !newBranch.state) {
@@ -2820,6 +2836,7 @@
       phone: (document.getElementById('rptPhone').value || '').trim(),
       email: (document.getElementById('rptEmail').value || '').trim(),
       notes: (document.getElementById('rptNotes').value || '').trim(),
+      image: (document.getElementById('rptImageBase64')?.value || '').trim(),
       status: 'Pending',
       isDuplicate: !!existingMatch
     };
@@ -2865,10 +2882,12 @@
 
   function clearReportForm() {
     ['rptBank','rptBranch','rptIfsc','rptMicr','rptDistrict','rptState',
-     'rptAddress','rptPincode','rptPhone','rptEmail','rptNotes'].forEach(id => {
+     'rptAddress','rptPincode','rptPhone','rptEmail','rptNotes','rptImageBase64','rptImageInput'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.value = '';
     });
+    const previewBox = document.getElementById('rptImagePreview');
+    if (previewBox) previewBox.style.display = 'none';
   }
 
   function renderMySubmissions() {
@@ -2911,6 +2930,11 @@
 
     // Inline SVG QR Generator Fallback
     body.innerHTML = `
+      ${item.image ? `
+        <div class="mb-3 text-center">
+          <img src="${item.image}" alt="${sanitizeHtml(item.bank)} ${sanitizeHtml(item.branch)}" class="img-fluid rounded-3 border shadow-sm" style="max-height: 200px; width: 100%; object-fit: cover;">
+        </div>
+      ` : ''}
       <div class="qr-code-box mb-3">
         <svg id="qrSvg" width="160" height="160" viewBox="0 0 100 100" style="background:#fff;">
           <rect width="100" height="100" fill="#ffffff"/>
@@ -2954,6 +2978,27 @@
         switchView(view);
       });
     });
+
+    // Prevent Mobile Chrome / Safari Pull-to-Refresh Page Reload on Touch Drag
+    let touchStartY = 0;
+    document.addEventListener('touchstart', function (e) {
+      if (e.touches && e.touches.length === 1) {
+        touchStartY = e.touches[0].clientY;
+      }
+    }, { passive: true });
+
+    document.addEventListener('touchmove', function (e) {
+      if (e.touches && e.touches.length === 1) {
+        const touchY = e.touches[0].clientY;
+        const touchDiff = touchY - touchStartY;
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+        if (scrollTop <= 0 && touchDiff > 0) {
+          if (e.cancelable) {
+            e.preventDefault();
+          }
+        }
+      }
+    }, { passive: false });
 
     // Sidebar Toggle Navigation (Desktop Collapse & Mobile Drawer)
     const btnSidebarToggle = document.getElementById('btnSidebarToggle');
@@ -3224,6 +3269,80 @@
     }
   }
 
+  // --- BANK IMAGE ENCODER & FIREBASE STORAGE HELPERS ---
+  function handleBranchImageUpload(event, previewContainerId, hiddenInputId) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      showToast('Please select a valid image file (JPG, PNG, WebP)', true);
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      showToast('Image file size must be under 10MB', true);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      const rawDataUrl = e.target.result;
+      compressImage(rawDataUrl, 800, 600, 0.75, function (compressedBase64) {
+        const hiddenInput = document.getElementById(hiddenInputId);
+        const previewBox = document.getElementById(previewContainerId);
+        const previewImg = previewBox ? previewBox.querySelector('img') : null;
+
+        if (hiddenInput) hiddenInput.value = compressedBase64;
+        if (previewImg) previewImg.src = compressedBase64;
+        if (previewBox) previewBox.style.display = 'block';
+
+        showToast('Bank image encoded & attached successfully!');
+      });
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function compressImage(dataUrl, maxWidth, maxHeight, quality, callback) {
+    const img = new Image();
+    img.onload = function () {
+      let width = img.width;
+      let height = img.height;
+
+      if (width > maxWidth) {
+        height = Math.round((height * maxWidth) / width);
+        width = maxWidth;
+      }
+      if (height > maxHeight) {
+        width = Math.round((width * maxHeight) / height);
+        height = maxHeight;
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+
+      const compressedData = canvas.toDataURL('image/jpeg', quality);
+      callback(compressedData);
+    };
+    img.onerror = function () {
+      callback(dataUrl);
+    };
+    img.src = dataUrl;
+  }
+
+  function removeBranchImage(previewContainerId, hiddenInputId, fileInputId) {
+    const previewBox = document.getElementById(previewContainerId);
+    const hiddenInput = document.getElementById(hiddenInputId);
+    const fileInput = document.getElementById(fileInputId);
+
+    if (hiddenInput) hiddenInput.value = '';
+    if (fileInput) fileInput.value = '';
+    if (previewBox) previewBox.style.display = 'none';
+    showToast('Removed image attachment');
+  }
+
   function sanitizeHtml(str) {
     if (str === null || str === undefined) return '';
     return String(str)
@@ -3252,6 +3371,8 @@
   window.App.renderMySubmissions = renderMySubmissions;
   window.App.selectDistrictFromNav = selectDistrictFromNav;
   window.App.filterDistrictNavByLetter = filterDistrictNavByLetter;
+  window.App.handleBranchImageUpload = handleBranchImageUpload;
+  window.App.removeBranchImage = removeBranchImage;
 
   // Handle incoming password reset link clicked from Gmail inbox
   const urlParams = new URLSearchParams(window.location.search);
